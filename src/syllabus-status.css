@@ -1,0 +1,149 @@
+/* ========== Status Row Colors — Class-based (Universal) ========== */
+
+/* Done → Green row */
+tr.row-done {
+  background: linear-gradient(135deg, #e6f9ed 0%, #d4f5e0 100%) !important;
+}
+tr.row-done td {
+  border-color: #a3e4b8 !important;
+  color: #1a5c2e;
+}
+tr.row-done td:first-child {
+  box-shadow: inset 4px 0 0 #2ea94f;
+}
+
+/* In Progress → Yellow row */
+tr.row-in-progress {
+  background: linear-gradient(135deg, #fff8e1 0%, #ffefb8 100%) !important;
+}
+tr.row-in-progress td {
+  border-color: #f5d565 !important;
+  color: #7a5900;
+}
+tr.row-in-progress td:first-child {
+  box-shadow: inset 4px 0 0 #e8a307;
+}
+
+/* Not Done → Red row */
+tr.row-not-done {
+  background: linear-gradient(135deg, #ffeaec 0%, #fdd8db 100%) !important;
+}
+tr.row-not-done td {
+  border-color: #f5a8af !important;
+  color: #8c1d25;
+}
+tr.row-not-done td:first-child {
+  box-shadow: inset 4px 0 0 #dc3545;
+}
+
+/* ========== Status Select Box Colors ========== */
+select.status-done {
+  background: #e6f9ed !important;
+  border: 2px solid #2ea94f !important;
+  color: #1a5c2e !important;
+  font-weight: 700;
+}
+
+select.status-in-progress {
+  background: #fff5d4 !important;
+  border: 2px solid #e8a307 !important;
+  color: #7a5900 !important;
+  font-weight: 700;
+}
+
+select.status-not-done {
+  background: #fde8ea !important;
+  border: 2px solid #dc3545 !important;
+  color: #8c1d25 !important;
+  font-weight: 700;
+}
+
+/* ========== Row hover effect ========== */
+table.wide tbody tr {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+table.wide tbody tr:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  z-index: 1;
+  position: relative;
+}
+
+/* ========== Font Size & Readability ========== */
+table.wide th {
+  font-size: 12px;
+  letter-spacing: 0.8px;
+  padding: 14px 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #3a5a80;
+  background: #edf3fa;
+  border-bottom: 2px solid #c5d6eb;
+}
+
+table.wide td {
+  font-size: 14px;
+  padding: 16px 14px;
+  line-height: 1.5;
+  color: #2d4a6a;
+  border-bottom: 1px solid #e2eaf4;
+  vertical-align: top;
+}
+
+table.wide td b {
+  font-size: 14px;
+  color: #132b50;
+  font-weight: 700;
+}
+
+/* Badge styling */
+table.wide .badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #e1efff;
+  color: #1260ba;
+}
+
+/* Status select base */
+.status-select {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 130px;
+}
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(18,100,195,0.15);
+}
+
+/* Detailed syllabus text */
+table.wide td div[style*="max-height"] {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  color: #3d5675;
+}
+
+/* Action buttons */
+table.wide .icon-btn {
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+table.wide .icon-btn:hover {
+  background: #eaf3ff;
+}
+table.wide .icon-btn.danger:hover {
+  background: #fce9ea;
+}
+
+/* Assessment label under month */
+table.wide td small {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: inline-block;
+}
