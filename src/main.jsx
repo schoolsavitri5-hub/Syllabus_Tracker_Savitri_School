@@ -3172,19 +3172,348 @@ function PrincipalChecklistModal({ data, filters, close }) {
     return { total, doneCount, inProgressCount, notDoneCount, pendingTotal, progressPct };
   }, [data]);
 
-  const handlePrint = () => {
-    document.body.classList.add('printing-mode');
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove('printing-mode');
-    }, 500);
-  };
-
   const currentDateStr = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
   });
+
+  const handleOpenInNewTab = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Pop-up was blocked. Please allow pop-ups for this site to open the printable checklist in a new tab.');
+      return;
+    }
+
+    const escapeHtml = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    const rowsHtml = filteredData.map((x, idx) => {
+      const isDone = x.status === 'Done';
+      const isInProgress = x.status === 'In Progress';
+      const statusBg = isDone ? '#e6f9ed' : isInProgress ? '#fff5d4' : '#fde8ea';
+      const statusColor = isDone ? '#19743c' : isInProgress ? '#986900' : '#b32e35';
+      const sectionText = x.section ? `<span style="display:block;font-size:9px;color:#2563eb;font-weight:700;">Sec ${escapeHtml(x.section)}</span>` : '';
+      const assessmentText = x.assessment ? `<span style="display:block;font-size:9px;color:#64748b;font-weight:600;">${escapeHtml(x.assessment)}</span>` : '';
+
+      return `
+        <tr>
+          <td style="text-align:center;font-weight:700;font-size:11px;">${idx + 1}</td>
+          <td style="font-size:11px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
+          <td style="font-size:11px;font-weight:700;">${escapeHtml(x.subject || '')}</td>
+          <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
+          <td style="font-size:11px;">
+            <div style="font-weight:700;color:#0f172a;margin-bottom:3px;">${escapeHtml(x.chapter || '')}</div>
+            <div style="font-size:10px;color:#334155;white-space:pre-line;line-height:1.35;">${escapeHtml(x.topic || '')}</div>
+          </td>
+          <td style="text-align:center;">
+            <span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">
+              ${escapeHtml(x.status || 'Not Done')}
+            </span>
+          </td>
+          <td style="text-align:center;vertical-align:middle;">
+            <div style="width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;margin:0 auto;"></div>
+          </td>
+          <td style="vertical-align:bottom;padding-bottom:6px;">
+            <div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const filterSummaryClass = filters.className === 'ALL' ? 'All Classes' : (filters.className || 'Not Selected') + ' (' + (filters.group === 'preprimary' ? 'Nursery-UKG' : filters.group === 'primary' ? '1st-8th' : '9th-12th') + ')';
+    const filterSummarySection = filters.sectionName === 'ALL' ? 'All Sections' : (filters.sectionName ? `Section ${filters.sectionName}` : 'All');
+    const filterSummarySubject = filters.subjectName === 'ALL' || !filters.subjectName ? 'All Subjects' : filters.subjectName;
+    const filterScopeText = statusFilter === 'PENDING' ? 'Pending & In-Progress Only' : statusFilter === 'ALL' ? 'All Topics' : statusFilter;
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Principal Inspection Checklist - ${escapeHtml(schoolName)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .top-action-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #0b4388;
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .top-action-bar .btn-print {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(220,38,38,0.4);
+      transition: all 0.2s;
+    }
+    .top-action-bar .btn-print:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+    }
+    .top-action-bar .btn-close {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .top-action-bar .btn-close:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    .page-wrapper {
+      max-width: 1060px;
+      margin: 24px auto;
+      background: #ffffff;
+      padding: 32px 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .school-header {
+      text-align: center;
+      border-bottom: 2.5px solid #0b4388;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .school-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0b4388;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .school-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 3px;
+    }
+    .report-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #dc2626;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 18px;
+      font-size: 11px;
+    }
+    .meta-grid b { color: #475569; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      page-break-inside: auto;
+      table-layout: fixed;
+    }
+    thead {
+      display: table-header-group;
+    }
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    th {
+      background: #f1f5f9 !important;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 8px 6px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+      font-size: 10.5px;
+    }
+    td {
+      padding: 8px 6px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+
+    .signatures-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 36px;
+      padding-top: 18px;
+      border-top: 1.5px solid #cbd5e1;
+      page-break-inside: avoid;
+    }
+    .sig-block {
+      text-align: center;
+    }
+    .sig-line {
+      border-bottom: 1.5px dashed #64748b;
+      height: 36px;
+      width: 80%;
+      margin: 0 auto 8px;
+    }
+    .sig-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .sig-sub {
+      font-size: 9.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 8mm;
+      }
+      body {
+        background: #ffffff;
+      }
+      .top-action-bar {
+        display: none !important;
+      }
+      .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+      }
+      th {
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .meta-grid {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-action-bar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">📄</span>
+      <div>
+        <div style="font-weight:700;font-size:15px;">Inspection Checklist (A4 Full View)</div>
+        <div style="font-size:11px;opacity:0.85;">Pehle yahan pura report verify karein, fir Print button dabayein ya <b>Ctrl + P / Cmd + P</b> karein</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button class="btn-print" onclick="window.print()">
+        🖨️ Print / Save as PDF (Ctrl + P)
+      </button>
+      <button class="btn-close" onclick="window.close()">
+        ✕ Close Tab
+      </button>
+    </div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="school-header">
+      <div class="school-title">🎓 ${escapeHtml(schoolName)}</div>
+      <div class="school-subtitle">📍 ADDRESS: ${escapeHtml(schoolAddress)}</div>
+      <div class="report-title">${escapeHtml(reportTitle)}</div>
+    </div>
+
+    <div class="meta-grid">
+      <div><b>Class & Group:</b> <span style="font-weight:700;">${escapeHtml(filterSummaryClass)}</span></div>
+      <div><b>Section:</b> <span style="color:#2563eb;font-weight:700;">${escapeHtml(filterSummarySection)}</span></div>
+      <div><b>Subject:</b> <span style="font-weight:700;">${escapeHtml(filterSummarySubject)}</span></div>
+      <div><b>Exam Pattern:</b> <span style="font-weight:700;">${escapeHtml(filters.exam || 'ALL')}</span></div>
+      <div><b>Inspection Date:</b> <span style="font-weight:700;">${escapeHtml(currentDateStr)}</span></div>
+      <div><b>Filter Scope:</b> <span style="color:${statusFilter === 'PENDING' ? '#dc2626' : '#0f172a'};font-weight:700;">${escapeHtml(filterScopeText)}</span></div>
+      <div><b>Pending Topics:</b> <span style="color:#dc2626;font-weight:800;">${stats.pendingTotal} items</span></div>
+      <div><b>Completed:</b> <span style="color:#166534;font-weight:800;">${stats.doneCount} / ${stats.total} (${stats.progressPct}%)</span></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32px;text-align:center;">#</th>
+          <th style="width:75px;">Class/Sec</th>
+          <th style="width:90px;">Subject</th>
+          <th style="width:85px;">Month/Term</th>
+          <th>Chapter & Detailed Syllabus</th>
+          <th style="width:90px;text-align:center;">Status</th>
+          <th style="width:48px;text-align:center;">Check</th>
+          <th style="width:145px;">Principal Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml || '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;">No records match selected filter</td></tr>'}
+      </tbody>
+    </table>
+
+    <div class="signatures-section">
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title">Subject Teacher Signature</div>
+        <div class="sig-sub">Date: ____/____/2026</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title">Academic Coordinator</div>
+        <div class="sig-sub">Savitri School</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title" style="color:#dc2626;">Principal Seal & Signature</div>
+        <div class="sig-sub">Status Approved / Verified</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(fullHtml);
+    printWindow.document.close();
+    printWindow.focus();
+  };
 
   return (
     <div className="modal-backdrop principal-print-backdrop" onClick={close} style={{ zIndex: 99999 }}>
@@ -3218,10 +3547,10 @@ function PrincipalChecklistModal({ data, filters, close }) {
             <button
               type="button"
               className="primary"
-              onClick={handlePrint}
+              onClick={handleOpenInNewTab}
               style={{ background: '#dc2626', borderColor: '#b91c1c', display: 'inline-flex', gap: 8, alignItems: 'center', padding: '10px 18px', fontWeight: 700, borderRadius: 8, cursor: 'pointer' }}
             >
-              <Icons.Printer size={18} /> Print / Download A4 PDF
+              <Icons.Printer size={18} /> Open in New Tab & Print (Ctrl + P)
             </button>
             <button className="modal-close" onClick={close} style={{ position: 'relative', right: 0, top: 0 }}>
               <Icons.X size={20} />
