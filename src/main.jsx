@@ -3179,6 +3179,14 @@ function PrincipalChecklistModal({ data, filters, close }) {
   });
 
   const handleOpenInNewTab = () => {
+    const activeLogoUrl = (() => {
+      try {
+        const direct = localStorage.getItem('school_logo_custom') || JSON.parse(localStorage.getItem('school_profile_settings') || '{}').logoUrl;
+        if (direct) return direct;
+      } catch(e) {}
+      return window.location.origin + '/school-logo.png';
+    })();
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Pop-up was blocked. Please allow pop-ups for this site to open the printable checklist in a new tab.');
@@ -3454,8 +3462,13 @@ function PrincipalChecklistModal({ data, filters, close }) {
 
   <div class="page-wrapper">
     <div class="school-header">
-      <div class="school-title">🎓 ${escapeHtml(schoolName)}</div>
-      <div class="school-subtitle">📍 ADDRESS: ${escapeHtml(schoolAddress)}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;">
+        <img src="${activeLogoUrl}" alt="School Logo" style="width:58px;height:58px;border-radius:50%;object-fit:cover;background:#ffffff;border:1.5px solid #0b4388;box-shadow:0 2px 6px rgba(0,0,0,0.08);" onerror="this.src='/school-logo.png'" />
+        <div style="text-align:left;">
+          <div class="school-title">${escapeHtml(schoolName)}</div>
+          <div class="school-subtitle">📍 ADDRESS: ${escapeHtml(schoolAddress)}</div>
+        </div>
+      </div>
       <div class="report-title">${escapeHtml(reportTitle)}</div>
     </div>
 
@@ -3607,10 +3620,10 @@ function PrincipalChecklistModal({ data, filters, close }) {
             
             {/* Header Section */}
             <div style={{ textAlign: 'center', borderBottom: '2.5px solid #0f172a', paddingBottom: 10, marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 2 }}>
-                <Icons.GraduationCap size={32} color="#0b4388" />
-                <div>
-                  <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0b4388', margin: 0, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 4 }}>
+                <SchoolLogo size={52} style={{ border: '1.5px solid #0b4388', padding: 2, background: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }} />
+                <div style={{ textAlign: 'left' }}>
+                  <h1 style={{ fontSize: 20, fontWeight: 900, color: '#0b4388', margin: 0, textTransform: 'uppercase', letterSpacing: 0.8 }}>
                     {schoolName}
                   </h1>
                   <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', margin: '2px 0 0', letterSpacing: 0.4 }}>
