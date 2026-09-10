@@ -41,34 +41,25 @@ function useSchoolProfile() {
 }
 
 function useAvatarState(user) {
-  const getAvatar = () => {
-    const custom = localStorage.getItem('avatarImg');
-    if (custom) return custom;
-    if (user?.email && localStorage.getItem(`avatarImg_${user.email}`)) {
-      return localStorage.getItem(`avatarImg_${user.email}`);
-    }
-    if (user?.avatar_url || user?.photo || user?.avatar || user?.picture || user?.user_metadata?.avatar_url || user?.user_metadata?.picture) {
-      return user.avatar_url || user.photo || user.avatar || user.picture || user.user_metadata?.avatar_url || user.user_metadata?.picture;
-    }
-    return null;
-  };
-
-  const [avatarImg, setAvatarImg] = useState(() => getAvatar());
+  const [avatarImg, setAvatarImg] = useState(() => {
+    return localStorage.getItem('avatarImg') || (user?.email && localStorage.getItem(`avatarImg_${user.email}`)) || null;
+  });
   const [avatarColor, setAvatarColor] = useState(() => localStorage.getItem('avatarColor') || '#1264c3');
 
   useEffect(() => {
-    const handleAvatarUpdate = () => {
-      setAvatarImg(getAvatar());
+    const sync = () => {
+      const photo = localStorage.getItem('avatarImg') || (user?.email && localStorage.getItem(`avatarImg_${user.email}`)) || null;
+      setAvatarImg(photo);
       setAvatarColor(localStorage.getItem('avatarColor') || '#1264c3');
     };
-    handleAvatarUpdate();
-    window.addEventListener('avatar_updated', handleAvatarUpdate);
-    window.addEventListener('storage', handleAvatarUpdate);
+    sync();
+    window.addEventListener('avatar_updated', sync);
+    window.addEventListener('storage', sync);
     return () => {
-      window.removeEventListener('avatar_updated', handleAvatarUpdate);
-      window.removeEventListener('storage', handleAvatarUpdate);
+      window.removeEventListener('avatar_updated', sync);
+      window.removeEventListener('storage', sync);
     };
-  }, [user]);
+  }, [user?.email]);
 
   return { avatarImg, avatarColor };
 }
@@ -8026,10 +8017,15 @@ function Profile({user}){
     const reader=new FileReader();
     reader.onload=ev=>{
       const img=ev.target.result;
-      setAvatarImg(img);
-      localStorage.setItem('avatarImg',img);
-      window.dispatchEvent(new Event('avatar_updated'));
-      flash('success','Profile photo updated!');
+      try {
+        setAvatarImg(img);
+        localStorage.setItem('avatarImg',img);
+        if(user.email) localStorage.setItem(`avatarImg_${user.email}`,img);
+        window.dispatchEvent(new Event('avatar_updated'));
+        flash('success','Profile photo updated!');
+      } catch(err) {
+        flash('error','Photo too large for storage. Try a smaller image.');
+      }
     };
     reader.readAsDataURL(file);
   }
@@ -8037,6 +8033,7 @@ function Profile({user}){
   function removePhoto(){
     setAvatarImg(null);
     localStorage.removeItem('avatarImg');
+    if(user.email) localStorage.removeItem(`avatarImg_${user.email}`);
     window.dispatchEvent(new Event('avatar_updated'));
     flash('success','Photo removed.');
   }
