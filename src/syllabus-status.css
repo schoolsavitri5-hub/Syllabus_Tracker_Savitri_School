@@ -58,15 +58,9 @@ select.status-not-done {
   font-weight: 700;
 }
 
-/* ========== Row hover effect ========== */
+/* ========== Table Row Styling (Hover effect removed) ========== */
 table.wide tbody tr {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-table.wide tbody tr:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-  z-index: 1;
-  position: relative;
+  transition: none;
 }
 
 /* ========== Font Size & Readability ========== */
@@ -128,16 +122,43 @@ table.wide td div[style*="max-height"] {
 }
 
 /* Action buttons */
+table.wide .action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
 table.wide .icon-btn {
-  padding: 8px;
-  border-radius: 8px;
-  transition: background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 7px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 table.wide .icon-btn:hover {
-  background: #eaf3ff;
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(29, 78, 216, 0.15);
+}
+table.wide .icon-btn.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
 }
 table.wide .icon-btn.danger:hover {
-  background: #fce9ea;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(220, 38, 38, 0.15);
 }
 
 /* Assessment label under month */
