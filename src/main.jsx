@@ -233,6 +233,7 @@ function Logo({size, style, src}){
 
   return <img src={logoSrc} alt="School Logo" className="logo" style={{borderRadius:'50%',objectFit:'cover',background:'transparent',...(size?{width:size,height:size,minWidth:size,minHeight:size}:{}),...style}}/>;
 }
+function SchoolLogo(props) { return <Logo {...props} />; }
 function Status({value}){return <span className={'status '+value.toLowerCase().replaceAll(' ','-')}>{value}</span>}
 function ToastNotification({ toast, onClose }) {
   if (!toast) return null;
