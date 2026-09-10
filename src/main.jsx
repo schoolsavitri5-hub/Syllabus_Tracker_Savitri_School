@@ -39,16 +39,57 @@ function useSchoolProfile() {
   }, []);
   return profile;
 }
+
+function useAvatarState() {
+  const [avatarImg, setAvatarImg] = useState(() => localStorage.getItem('avatarImg') || null);
+  const [avatarColor, setAvatarColor] = useState(() => localStorage.getItem('avatarColor') || '#1264c3');
+
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      setAvatarImg(localStorage.getItem('avatarImg') || null);
+      setAvatarColor(localStorage.getItem('avatarColor') || '#1264c3');
+    };
+    window.addEventListener('avatar_updated', handleAvatarUpdate);
+    window.addEventListener('storage', handleAvatarUpdate);
+    return () => {
+      window.removeEventListener('avatar_updated', handleAvatarUpdate);
+      window.removeEventListener('storage', handleAvatarUpdate);
+    };
+  }, []);
+
+  return { avatarImg, avatarColor };
+}
 const seed=[
  ['Biology','April','Cell: The Unit of Life','कोशिका : जीवन की इकाई','Done'],['Biology','September','Genetics & Evolution','आनुवंशिकी एवं विकास','Not Done'],['Physics','April','Electric Charges and Fields','वैद्युत आवेश तथा क्षेत्र','Done'],['Physics','September','Electromagnetic Waves','विद्युत चुम्बकीय तरंगें','In Progress'],['Chemistry','August','Chemical Kinetics','रासायनिक बलगतिकी','Done'],['Chemistry','September','Coordination Compounds','उपसहसंयोजन यौगिक','Done'],['Mathematics','September','Integrals','समाकलन','Not Done'],['English','September','The Last Lesson','द लास्ट लेसन','Done'],['Hindi','September','आत्मपरिचय','आत्मपरिचय','In Progress'],['Physics','October','Ray Optics','किरण प्रकाशिकी','Not Done'],['Biology','October','Biotechnology','जैव प्रौद्योगिकी','In Progress']
 ].map(([subject,month,chapter,hindi,status],i)=>({id:i+1,subject,month,chapter,hindi,topic:`${chapter} — concepts and applications`,assessment:'Unit Test',status,remarks:status==='Not Done'?'Schedule required':'Updated recently'}))
 // Offline demo dataset mirrors the Supabase demo-data.sql seed: every class has
 // realistic subjects and a complete April–February syllabus for immediate testing.
 const demoClasses=['Nursery','LKG','UKG','Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10','Class 11','Class 12']
-const demoTerms=[{month:'Apr - July',assessment:'PA 1'},{month:'Aug - Oct',assessment:'Half Yearly'},{month:'Nov - Dec',assessment:'PA 2'},{month:'Jan - Feb',assessment:'Annual'}]
+const demoTermsPrimary=[{month:'Apr - July',assessment:'PA 1'},{month:'Aug - Oct',assessment:'Half Yearly'},{month:'Nov - Dec',assessment:'PA 2'},{month:'Jan - Feb',assessment:'Annual'}]
+const demoTermsSenior=[{month:'Apr - May',assessment:'UT 1'},{month:'July',assessment:'UT 2'},{month:'Aug - Oct',assessment:'Half Yearly'},{month:'Nov - Dec',assessment:'UT 3'},{month:'Jan - Feb',assessment:'UT 4'}]
 const demoSubjects=level=>level==='junior'?['English','Hindi','Mathematics','EVS','Computer']:level==='middle'?['English','Hindi','Mathematics','Science','Social Science','Computer']:['English','Physics','Chemistry','Mathematics','Biology']
 const demoSubjectsPP=()=>['English','Hindi','Mathematics','EVS','Drawing','GK']
-demoClasses.forEach((className,classIndex)=>{const isPP=['Nursery','LKG','UKG'].includes(className);const level=isPP?'preprimary':classIndex<8?'junior':classIndex<11?'middle':'senior';const group=isPP?'preprimary':classIndex<11?'primary':'senior';const subjects=isPP?demoSubjectsPP():demoSubjects(level);subjects.forEach((subject,subjectIndex)=>demoTerms.forEach((term,termIndex)=>seed.push({id:`demo-${classIndex}-${subjectIndex}-${termIndex}`,className,section:termIndex%2?'B':'A',group,subject,month:term.month,chapter:`${subject} — ${term.assessment} Syllabus`,hindi:'Demo syllabus',topic:`${term.assessment} learning objectives and practice`,assessment:term.assessment,status:['Done','In Progress','Not Done'][(classIndex+subjectIndex+termIndex)%3],remarks:'Demo academic data'})))})
+demoClasses.forEach((className,classIndex)=>{
+  const isPP=['Nursery','LKG','UKG'].includes(className);
+  const level=isPP?'preprimary':classIndex<8?'junior':classIndex<11?'middle':'senior';
+  const group=isPP?'preprimary':classIndex<11?'primary':'senior';
+  const subjects=isPP?demoSubjectsPP():demoSubjects(level);
+  const terms=group==='senior'?demoTermsSenior:demoTermsPrimary;
+  subjects.forEach((subject,subjectIndex)=>terms.forEach((term,termIndex)=>seed.push({
+    id:`demo-${classIndex}-${subjectIndex}-${termIndex}`,
+    className,
+    section:termIndex%2?'B':'A',
+    group,
+    subject,
+    month:term.month,
+    chapter:`${subject} — ${term.assessment} Syllabus`,
+    hindi:'Demo syllabus',
+    topic:`${term.assessment} learning objectives and practice`,
+    assessment:term.assessment,
+    status:['Done','In Progress','Not Done'][(classIndex+subjectIndex+termIndex)%3],
+    remarks:'Demo academic data'
+  })))
+})
 const statusValues=['Done','In Progress','Not Done']
 const examPatternDefs = {
   primary: [
@@ -63,16 +104,19 @@ const examPatternDefs = {
     { id: 'UT-1', label: 'UT-1 (Unit Test 1)', shortLabel: 'UT-1' },
     { id: 'UT-2', label: 'UT-2 (Unit Test 2)', shortLabel: 'UT-2' },
     { id: 'HALF YEARLY', label: 'Half Yearly Examination', shortLabel: 'Half Yearly' },
-    { id: 'UT-3', label: 'UT-3 / T3 (Unit Test 3)', shortLabel: 'UT-3' },
+    { id: 'UT-3', label: 'UT-3 (Unit Test 3)', shortLabel: 'UT-3' },
     { id: 'UT-4', label: 'UT-4 (Unit Test 4 / Pre-Board)', shortLabel: 'UT-4' }
   ],
   all: [
     { id: 'ALL', label: 'All Exams (Complete View)', shortLabel: 'All Exams' },
-    { id: 'PA-1 / UT-1', label: 'PA-1 / UT-1 (Term 1 Exam)', shortLabel: 'PA-1 / UT-1' },
+    { id: 'PA-1', label: 'PA-1 (Periodic Assessment 1)', shortLabel: 'PA-1' },
+    { id: 'UT-1', label: 'UT-1 (Senior Unit Test 1)', shortLabel: 'UT-1' },
     { id: 'UT-2', label: 'UT-2 (Senior Unit Test 2)', shortLabel: 'UT-2' },
-    { id: 'HALF YEARLY', label: 'Half Yearly (All Classes)', shortLabel: 'Half Yearly' },
-    { id: 'PA-2 / UT-3', label: 'PA-2 / UT-3 (Term 2 Exam)', shortLabel: 'PA-2 / UT-3' },
-    { id: 'ANNUAL / UT-4', label: 'Annual / UT-4 (Final Exam)', shortLabel: 'Annual / UT-4' }
+    { id: 'HALF YEARLY', label: 'Half Yearly Examination', shortLabel: 'Half Yearly' },
+    { id: 'PA-2', label: 'PA-2 (Periodic Assessment 2)', shortLabel: 'PA-2' },
+    { id: 'UT-3', label: 'UT-3 (Senior Unit Test 3)', shortLabel: 'UT-3' },
+    { id: 'UT-4', label: 'UT-4 (Senior Unit Test 4)', shortLabel: 'UT-4' },
+    { id: 'ANNUAL', label: 'Annual Examination', shortLabel: 'Annual' }
   ]
 };
 
@@ -115,41 +159,66 @@ function matchesExam(topic, examId, selectedClass) {
   const a = norm(topic.assessment || topic.assessment_en);
   const ch = norm(topic.chapter || topic.unit_chapter_en);
   const m = norm(topic.month);
+  const grp = getClassGroup(topic.className || selectedClass);
 
-  // Direct match in assessment or chapter
-  if (a === target || a.includes(target) || ch.includes(target)) return true;
+  // Exact assessment match
+  if (a === target) return true;
 
-  if (target === 'pa1' || target.includes('pa1') || target.includes('ut1')) {
-    if (a.includes('pa1') || a.includes('ut1') || ch.includes('pa1') || ch.includes('ut1')) return true;
-    return ['apr', 'april', 'may', 'june', 'jun', 'july', 'jul', 'aprjul', 'aprjuly'].some(k => m.includes(k));
+  if (target === 'pa1') {
+    if (a.includes('pa1') || (a.includes('pa') && a.includes('1') && !a.includes('pa2'))) return true;
+    if (grp !== 'senior' && !a && ['apr', 'april', 'may', 'june', 'jun', 'july', 'jul', 'aprjul', 'aprjuly'].some(k => m.includes(k))) return true;
+    return false;
   }
-  if (target === 'ut2' || target.includes('ut2')) {
-    if (a.includes('ut2') || ch.includes('ut2')) return true;
-    return ['jul', 'july'].some(k => m.includes(k));
+  if (target === 'ut1') {
+    if (a.includes('ut1') || (a.includes('ut') && a.includes('1') && !a.includes('ut2') && !a.includes('ut3') && !a.includes('ut4')) || (a.includes('unit') && a.includes('1') && !a.includes('2') && !a.includes('3') && !a.includes('4'))) return true;
+    if (grp === 'senior' && !a && ['apr', 'april', 'may', 'june', 'jun', 'aprmay'].some(k => m.includes(k))) return true;
+    return false;
   }
-  if (target === 'halfyearly' || target.includes('halfyearly') || target.includes('hy') || target.includes('half')) {
-    if (a.includes('half') || ch.includes('half') || a.includes('hy') || ch.includes('hy')) return true;
-    return ['aug', 'august', 'sep', 'sept', 'september', 'oct', 'october', 'augoct'].some(k => m.includes(k));
+  if (target === 'ut2') {
+    if (a.includes('ut2') || (a.includes('ut') && a.includes('2')) || (a.includes('unit') && a.includes('2'))) return true;
+    if (grp === 'senior' && !a && ['jul', 'july'].some(k => m.includes(k))) return true;
+    return false;
   }
-  if (target === 'pa2' || target.includes('pa2') || target.includes('ut3') || target.includes('t3')) {
-    if (a.includes('pa2') || a.includes('ut3') || a.includes('t3') || ch.includes('pa2') || ch.includes('ut3') || ch.includes('t3')) return true;
-    return ['nov', 'november', 'dec', 'december', 'novdec', 'oct', 'october'].some(k => m.includes(k));
+  if (target === 'halfyearly' || target === 'hy') {
+    if (a.includes('half') || a.includes('hy') || ch.includes('half')) return true;
+    if (!a && ['aug', 'august', 'sep', 'sept', 'september', 'oct', 'october', 'augoct'].some(k => m.includes(k))) return true;
+    return false;
   }
-  if (target === 'annual' || target.includes('annual') || target.includes('ut4') || target.includes('final')) {
-    if (a.includes('annual') || a.includes('ut4') || ch.includes('annual') || ch.includes('ut4')) return true;
-    return ['jan', 'january', 'feb', 'february', 'mar', 'march', 'janfeb'].some(k => m.includes(k));
+  if (target === 'pa2') {
+    if (a.includes('pa2') || (a.includes('pa') && a.includes('2'))) return true;
+    if (grp !== 'senior' && !a && ['nov', 'november', 'dec', 'december', 'novdec'].some(k => m.includes(k))) return true;
+    return false;
   }
-  return false;
+  if (target === 'ut3' || target === 't3') {
+    if (a.includes('ut3') || (a.includes('ut') && a.includes('3')) || a.includes('t3') || (a.includes('unit') && a.includes('3'))) return true;
+    if (grp === 'senior' && !a && ['nov', 'november', 'dec', 'december', 'novdec'].some(k => m.includes(k))) return true;
+    return false;
+  }
+  if (target === 'ut4') {
+    if (a.includes('ut4') || (a.includes('ut') && a.includes('4')) || a.includes('preboard') || (a.includes('unit') && a.includes('4'))) return true;
+    if (grp === 'senior' && !a && ['jan', 'january', 'feb', 'february', 'janfeb'].some(k => m.includes(k))) return true;
+    return false;
+  }
+  if (target === 'annual' || target === 'final') {
+    if (a.includes('annual') || a.includes('final') || ch.includes('annual')) return true;
+    if (grp !== 'senior' && !a && ['jan', 'january', 'feb', 'february', 'mar', 'march', 'janfeb'].some(k => m.includes(k))) return true;
+    return false;
+  }
+
+  return a.includes(target) || ch.includes(target);
 }
 
 const examPatterns = {
   all: [
     ['ALL', null],
-    ['PA-1 / UT-1', ['April', 'May', 'June', 'July']],
+    ['PA-1', ['April', 'May', 'June', 'July']],
+    ['UT-1', ['April', 'May', 'June']],
     ['UT-2', ['July']],
     ['HALF YEARLY', ['April', 'May', 'June', 'July', 'August', 'September']],
-    ['PA-2 / UT-3', ['October', 'November', 'December']],
-    ['ANNUAL / UT-4', ['January', 'February']]
+    ['PA-2', ['November', 'December']],
+    ['UT-3', ['October', 'November']],
+    ['UT-4', ['December', 'January', 'February']],
+    ['ANNUAL', ['January', 'February']]
   ],
   preprimary: [
     ['ALL', null],
@@ -309,6 +378,22 @@ const DEFAULT_ACADEMIC_SESSIONS = [
 
 const MASTER_PASSWORD = 'AKASH@8299';
 
+function sortSessions(sessionsList) {
+  if (!Array.isArray(sessionsList)) return [];
+  return [...sessionsList].sort((a, b) => {
+    // 1. Current session (isCurrent: true) always comes first at the top
+    const aIsCurrent = Boolean(a && a.isCurrent);
+    const bIsCurrent = Boolean(b && b.isCurrent);
+    if (aIsCurrent && !bIsCurrent) return -1;
+    if (!aIsCurrent && bIsCurrent) return 1;
+
+    // 2. Secondary sorting: descending chronological order by year/name
+    const nameA = String(a?.name || a?.id || '');
+    const nameB = String(b?.name || b?.id || '');
+    return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
 function getSessionTopicStats(sessionId) {
   let list = [];
   try {
@@ -327,9 +412,20 @@ function getSessionTopicStats(sessionId) {
 function getStoredSessions() {
   try {
     const saved = localStorage.getItem('school_academic_sessions');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasCurrent = parsed.some(s => s && s.isCurrent);
+        const activeId = localStorage.getItem('active_academic_session') || '2026-27';
+        const list = parsed.map(s => {
+          if (!hasCurrent && s.id === activeId) return { ...s, isCurrent: true };
+          return s;
+        });
+        return sortSessions(list);
+      }
+    }
   } catch(e) {}
-  return DEFAULT_ACADEMIC_SESSIONS;
+  return sortSessions(DEFAULT_ACADEMIC_SESSIONS);
 }
 
 function getActiveSessionId() {
@@ -699,6 +795,7 @@ function Shell({user,setUser}){
   const [sessionToast, setSessionToast] = useState(null);
   const loc=useLocation();
   const title=nav.find(n=>loc.pathname.startsWith(n[0]))?.[1]||'Dashboard';
+  const { avatarImg, avatarColor } = useAvatarState();
 
   React.useEffect(()=>{document.body.classList.toggle('dark',dark);localStorage.setItem('theme',dark?'dark':'light')},[dark]);
 
@@ -739,11 +836,12 @@ function Shell({user,setUser}){
       isCurrent: newSessionData.makeActive,
       createdAt: new Date().toISOString()
     };
-    let updated = [...sessions];
+    let updated = [...sessions.filter(s => s.id !== newId)];
     if (newSessionData.makeActive) {
       updated = updated.map(s => ({ ...s, isCurrent: false }));
     }
     updated.push(newObj);
+    updated = sortSessions(updated);
     setSessions(updated);
     localStorage.setItem('school_academic_sessions', JSON.stringify(updated));
 
@@ -771,6 +869,7 @@ function Shell({user,setUser}){
       }
       return s;
     });
+    updated = sortSessions(updated);
     setSessions(updated);
     localStorage.setItem('school_academic_sessions', JSON.stringify(updated));
 
@@ -815,7 +914,7 @@ function Shell({user,setUser}){
       }
     }
     // --- Local cleanup ---
-    const updated = sessions.filter(s => s.id !== sessionId);
+    const updated = sortSessions(sessions.filter(s => s.id !== sessionId));
     setSessions(updated);
     localStorage.setItem('school_academic_sessions', JSON.stringify(updated));
     localStorage.removeItem('syllabus_topics_' + sessionId);
@@ -895,7 +994,11 @@ function Shell({user,setUser}){
         </nav>
         <div className="side-bottom">
           <div className="mini-user">
-            <div className="avatar">{user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+            {avatarImg ? (
+              <img src={avatarImg} alt={user.name} className="avatar-img" />
+            ) : (
+              <div className="avatar" style={{ background: avatarColor, color: '#ffffff' }}>{user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+            )}
             <div>
               <b>{user.name}</b>
               <small>{user.role}</small>
@@ -1052,9 +1155,11 @@ function Header({title,user,sidebarOpen,onToggleSidebar,dark,setDark,setUser,ses
     return()=>document.removeEventListener('mousedown',handler);
   },[]);
 
+  const { avatarImg, avatarColor } = useAvatarState();
   const loginTime=React.useMemo(()=>new Date(),[]);
   const initials=user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()||'U';
   const activeSessionObj=sessions.find(s=>s.id===currentSession)||{name:currentSession,label:`Academic Session ${currentSession}`};
+  const sortedSessions=React.useMemo(()=>sortSessions(sessions),[sessions]);
 
   return <header>
     <div className="header-left">
@@ -1092,7 +1197,7 @@ function Header({title,user,sidebarOpen,onToggleSidebar,dark,setDark,setUser,ses
               <b>Academic Sessions</b>
             </div>
             <div className="session-list">
-              {sessions.map(s=>(
+              {sortedSessions.map(s=>(
                 <div
                   key={s.id}
                   className={`session-item ${s.id===currentSession?'active':''}`}
@@ -1154,7 +1259,11 @@ function Header({title,user,sidebarOpen,onToggleSidebar,dark,setDark,setUser,ses
         </div>}
       </div>
       <div className="header-user">
-        <div className="avatar">{initials}</div>
+        {avatarImg ? (
+          <img src={avatarImg} alt={user.name} className="avatar-img" />
+        ) : (
+          <div className="avatar" style={{ background: avatarColor, color: '#ffffff' }}>{initials}</div>
+        )}
         <div><b>{user.name}</b><Status value={user.role==='ADMIN'?'Admin':'Computer Operator'}/></div>
       </div>
       <button className="header-logout" onClick={()=>setUser(null)} title="Logout"><Icons.LogOut size={18}/></button>
@@ -1251,6 +1360,7 @@ function CustomChartTooltip({ active, payload, isClass, examLabel }) {
 
 function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSession, onOpenCreateSession, onOpenResetStatus }) {
   const schoolProfile = useSchoolProfile();
+  const { avatarImg, avatarColor } = useAvatarState();
   const { topics, dbClasses, reload, setTopics } = useTopics(currentSession),
         [selectedClass,setSelectedClass]=useState('ALL'),
         [selectedSection,setSelectedSection]=useState('ALL'),
@@ -1412,11 +1522,17 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
         <p>{schoolProfile.name} <span>•</span> {schoolProfile.address}</p>
       </div>
       <div className="hero-user">
-        <Logo/>
+        {avatarImg ? (
+          <img src={avatarImg} alt={user.name} className="avatar-img" style={{ width: 44, height: 44, minWidth: 44 }} />
+        ) : (
+          <div className="avatar" style={{ width: 44, height: 44, minWidth: 44, fontSize: 16, background: avatarColor, color: '#ffffff' }}>
+            {user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+          </div>
+        )}
         <div>
           <small>LOGGED IN AS</small>
           <b>{user.name}</b>
-          <Status value="Admin"/>
+          <Status value={user.role==='ADMIN'?'Admin':'Computer Operator'}/>
         </div>
       </div>
     </div>
@@ -1743,9 +1859,11 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
       {subjectData.length>0?(
         <div className="subjects">
           {subjectData.map(x=><div className="subject" key={x.name}>
-            <div className="subject-icon">{x.name.slice(0,2).toUpperCase()}</div>
+            <div className="subject-header-row">
+              <div className="subject-icon">{x.name.slice(0,2).toUpperCase()}</div>
+              <strong style={{color:getBarColor(x.progress)}}>{x.progress}%</strong>
+            </div>
             <b>{x.name}</b>
-            <strong style={{color:getBarColor(x.progress)}}>{x.progress}%</strong>
             <div className="bar">
               <i style={{width:x.progress+'%',background:getBarColor(x.progress)}}/>
             </div>
@@ -3759,6 +3877,1246 @@ function PrincipalChecklistModal({ data, filters, close }) {
   );
 }
 
+function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close }) {
+  const schoolProfile = getStoredSchool ? getStoredSchool() : { name: 'SAVITRI BALIKA INTER COLLEGE', address: 'KHUTAHA, ROAD JAMUANHIYA MIRZAPUR' };
+  const schoolName = schoolProfile.name || 'SAVITRI BALIKA INTER COLLEGE';
+  const schoolAddress = schoolProfile.address || 'KHUTAHA, ROAD JAMUANHIYA MIRZAPUR';
+  const sessionLabel = currentSession ? currentSession.replace('-', '–') : '2026–27';
+  const reportTitle = `OFFICIAL ACADEMIC SYLLABUS — SESSION ${sessionLabel}`;
+
+  const currentDateStr = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const handleOpenInNewTab = () => {
+    const activeLogoUrl = (() => {
+      try {
+        const direct = localStorage.getItem('school_logo_custom') || JSON.parse(localStorage.getItem('school_profile_settings') || '{}').logoUrl;
+        if (direct) return direct;
+      } catch(e) {}
+      return window.location.origin + '/school-logo.png';
+    })();
+
+    const escapeHtml = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    const rowsHtml = data.map((x, idx) => {
+      const sectionText = x.section ? `<span style="display:inline-block;margin-left:4px;padding:1px 5px;background:#dbeafe;color:#1e40af;border-radius:3px;font-size:9px;font-weight:700;">Sec ${escapeHtml(x.section)}</span>` : '';
+      const assessmentText = x.assessment ? `<span style="display:inline-block;padding:2px 6px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:4px;font-size:9px;font-weight:700;">${escapeHtml(x.assessment)}</span>` : '';
+      const hindiText = x.hindi ? `<div style="font-size:10px;color:#475569;font-weight:500;margin-top:2px;">( ${escapeHtml(x.hindi)} )</div>` : '';
+      const practicalTag = (x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) ? `<span style="display:inline-block;margin-top:4px;padding:1px 6px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:3px;font-size:9px;font-weight:700;">🧪 Practical Topic</span>` : '';
+
+      return `
+        <tr>
+          <td style="text-align:center;font-weight:700;font-size:11px;">${idx + 1}</td>
+          <td style="font-size:11px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
+          <td style="font-size:11px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td>
+          <td style="font-size:10.5px;font-weight:600;">${escapeHtml(x.month || '')}</td>
+          <td style="font-size:10px;text-align:center;">${assessmentText || '—'}</td>
+          <td style="font-size:11px;">
+            <div style="font-weight:700;color:#0f172a;margin-bottom:2px;font-size:11.5px;">${escapeHtml(x.chapter || '')}</div>
+            ${hindiText}
+            <div style="font-size:10px;color:#334155;white-space:pre-line;line-height:1.35;margin-top:3px;">${escapeHtml(x.topic || '')}</div>
+            ${practicalTag}
+          </td>
+          <td style="text-align:center;vertical-align:middle;">
+            <div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div>
+            <span style="font-size:8px;color:#64748b;">Prepared</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const filterSummaryClass = filters.className === 'ALL' ? 'All Classes (Nursery–12th)' : (filters.className || 'All Classes');
+    const filterSummarySection = filters.sectionName === 'ALL' ? 'All Sections' : (filters.sectionName ? `Section ${filters.sectionName}` : 'All');
+    const filterSummarySubject = filters.subjectName === 'ALL' || !filters.subjectName ? 'All Subjects' : filters.subjectName;
+    const filterExamText = filters.exam === 'ALL' || !filters.exam ? 'Full Academic Session Syllabus' : filters.exam;
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Academic Syllabus - ${escapeHtml(schoolName)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .top-action-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #1d4ed8;
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+    .top-action-bar .btn-print {
+      background: #ffffff;
+      color: #1d4ed8;
+      border: none;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: all 0.2s;
+    }
+    .top-action-bar .btn-print:hover {
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+    .top-action-bar .btn-close {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .top-action-bar .btn-close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .page-wrapper {
+      max-width: 1060px;
+      margin: 24px auto;
+      background: #ffffff;
+      padding: 32px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .school-header {
+      text-align: center;
+      border-bottom: 2.5px solid #1d4ed8;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .school-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0b4388;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .school-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 3px;
+    }
+    .report-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 14px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 18px;
+      font-size: 11px;
+    }
+    .meta-grid b { color: #475569; }
+
+    .student-fields-bar {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      background: #ffffff;
+      border: 1.5px dashed #cbd5e1;
+      padding: 8px 14px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 11px;
+    }
+    .field-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .field-line span {
+      border-bottom: 1px solid #94a3b8;
+      flex: 1;
+      min-height: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      page-break-inside: auto;
+      table-layout: fixed;
+    }
+    thead {
+      display: table-header-group;
+    }
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    th {
+      background: #f8fafc !important;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 8px 6px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+      font-size: 10.5px;
+    }
+    td {
+      padding: 8px 6px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+
+    .instructions-box {
+      margin-top: 20px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #1d4ed8;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 10.5px;
+      color: #334155;
+      page-break-inside: avoid;
+    }
+    .instructions-box b {
+      color: #0f172a;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .instructions-box ol {
+      margin-left: 18px;
+    }
+    .instructions-box li {
+      margin-bottom: 2px;
+    }
+
+    .signatures-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1.5px solid #cbd5e1;
+      page-break-inside: avoid;
+    }
+    .sig-block {
+      text-align: center;
+    }
+    .sig-line {
+      border-bottom: 1.5px dashed #64748b;
+      height: 34px;
+      width: 80%;
+      margin: 0 auto 8px;
+    }
+    .sig-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .sig-sub {
+      font-size: 9.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm 7mm;
+      }
+      body {
+        background: #ffffff;
+      }
+      .top-action-bar {
+        display: none !important;
+      }
+      .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+      }
+      th {
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .meta-grid, .student-fields-bar, .instructions-box {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-action-bar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">🎓</span>
+      <div>
+        <div style="font-weight:800;font-size:15px;">Student Academic Syllabus (A4 Full View & Print)</div>
+        <div style="font-size:11px;opacity:0.9;">Verify curriculum and press Print button or press <b>Ctrl + P / Cmd + P</b> to print or save PDF</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button class="btn-print" onclick="window.print()">
+        🖨️ Print / Save as PDF (Ctrl + P)
+      </button>
+      <button class="btn-close" onclick="window.close()">
+        ✕ Close Tab
+      </button>
+    </div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="school-header">
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;">
+        <img src="${activeLogoUrl}" alt="School Logo" style="width:56px;height:56px;border-radius:50%;object-fit:cover;background:#ffffff;border:1.5px solid #0b4388;box-shadow:0 2px 6px rgba(0,0,0,0.08);" onerror="this.src='/school-logo.png'" />
+        <div style="text-align:left;">
+          <div class="school-title">${escapeHtml(schoolName)}</div>
+          <div class="school-subtitle">📍 ADDRESS: ${escapeHtml(schoolAddress)}</div>
+        </div>
+      </div>
+      <div class="report-badge">📘 ${escapeHtml(reportTitle)}</div>
+    </div>
+
+    <div class="meta-grid">
+      <div><b>Class & Group:</b> <span style="font-weight:700;color:#0f172a;">${escapeHtml(filterSummaryClass)}</span></div>
+      <div><b>Section:</b> <span style="color:#2563eb;font-weight:700;">${escapeHtml(filterSummarySection)}</span></div>
+      <div><b>Subject:</b> <span style="font-weight:700;color:#0b4388;">${escapeHtml(filterSummarySubject)}</span></div>
+      <div><b>Exam / Pattern:</b> <span style="font-weight:700;">${escapeHtml(filterExamText)}</span></div>
+      <div><b>Academic Session:</b> <span style="font-weight:800;color:#16a34a;">${escapeHtml(sessionLabel)}</span></div>
+      <div><b>Issue Date:</b> <span style="font-weight:700;">${escapeHtml(currentDateStr)}</span></div>
+      <div><b>Total Chapters / Topics:</b> <span style="font-weight:800;color:#1d4ed8;">${data.length} Units</span></div>
+      <div><b>Curriculum Type:</b> <span style="font-weight:700;color:#475569;">Official Student Academic Syllabus</span></div>
+    </div>
+
+    <div class="student-fields-bar">
+      <div class="field-line"><b>Student Name:</b> <span></span></div>
+      <div class="field-line"><b>Roll No:</b> <span></span></div>
+      <div class="field-line"><b>Admission No:</b> <span></span></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px;text-align:center;">S.N.</th>
+          <th style="width:75px;">Class/Sec</th>
+          <th style="width:90px;">Subject</th>
+          <th style="width:85px;">Month</th>
+          <th style="width:80px;text-align:center;">Exam Pattern</th>
+          <th>Chapter Name & Detailed Topics</th>
+          <th style="width:65px;text-align:center;">Study Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml || '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">No syllabus records match the selected filter</td></tr>'}
+      </tbody>
+    </table>
+
+    <div class="instructions-box">
+      <b>📌 Important Instructions for Students & Parents:</b>
+      <ol>
+        <li>Follow the month-wise chapter plan and complete all syllabus topics before the commencement of examinations.</li>
+        <li>Maintain regular class notebooks, homework copies, and practical workbooks as evaluated for internal assessments.</li>
+        <li>For any academic doubts or syllabus assistance, consult respective subject teachers during class hours.</li>
+      </ol>
+    </div>
+
+    <div class="signatures-section">
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title">Subject Teacher Signature</div>
+        <div class="sig-sub">Date: ____/____/2026</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title">Class Teacher Signature</div>
+        <div class="sig-sub">Savitri Balika Inter College</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title" style="color:#0b4388;">Principal Seal & Signature</div>
+        <div class="sig-sub">Authorized Academic Curriculum</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    try {
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, '_blank');
+      if (!printWindow) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.target = '_blank';
+        link.rel = 'noopener,noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (e) {
+      console.error('Error creating print blob:', e);
+      const fallbackWin = window.open('', '_blank');
+      if (fallbackWin) {
+        fallbackWin.document.open();
+        fallbackWin.document.write(fullHtml);
+        fallbackWin.document.close();
+      }
+    }
+  };
+
+  return (
+    <div className="modal-backdrop principal-print-backdrop" onClick={close} style={{ zIndex: 99999 }}>
+      <div
+        className="modal"
+        style={{
+          maxWidth: 980,
+          width: '95%',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 24,
+          borderRadius: 16,
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          background: '#ffffff',
+          overflow: 'hidden'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal Control Toolbar */}
+        <div className="print-no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: '1px solid #e2e8f0', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <span style={{ fontSize: 10, letterSpacing: 1.2, fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase' }}>
+              🎓 Student Academic Syllabus
+            </span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '3px 0 0' }}>
+              A4 Ready-to-Print Student Syllabus Document
+            </h2>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="primary"
+              onClick={handleOpenInNewTab}
+              style={{ background: '#1d4ed8', borderColor: '#1e40af', display: 'inline-flex', gap: 8, alignItems: 'center', padding: '10px 18px', fontWeight: 700, borderRadius: 8, cursor: 'pointer' }}
+            >
+              <Icons.Printer size={18} /> Open in New Tab & Print (Ctrl + P)
+            </button>
+            <button className="modal-close" onClick={close} style={{ position: 'relative', right: 0, top: 0 }}>
+              <Icons.X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Info Toolbar */}
+        <div className="print-no-print" style={{ background: '#eff6ff', padding: '10px 14px', borderRadius: 8, border: '1px solid #bfdbfe', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#1e40af', fontWeight: 600 }}>
+            <span>📄 Total <b>{data.length}</b> Syllabus Topics ready to print for students</span>
+          </div>
+          <span style={{ fontSize: 11, color: '#64748b' }}>
+            Clean student format without completion status
+          </span>
+        </div>
+
+        {/* Scrollable Document Preview Container */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+          {/* A4 Document Printable Area */}
+          <div className="student-print-area" style={{ background: '#ffffff', color: '#0f172a', padding: '24px 20px', border: '1px solid #cbd5e1', borderRadius: 8 }}>
+            {/* Header Section */}
+            <div style={{ textAlign: 'center', borderBottom: '2.5px solid #1d4ed8', paddingBottom: 10, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 4 }}>
+                <SchoolLogo size={52} style={{ border: '1.5px solid #0b4388', padding: 2, background: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }} />
+                <div style={{ textAlign: 'left' }}>
+                  <h1 style={{ fontSize: 20, fontWeight: 900, color: '#0b4388', margin: 0, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                    {schoolName}
+                  </h1>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', margin: '2px 0 0', letterSpacing: 0.4 }}>
+                    📍 ADDRESS: {schoolAddress}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'inline-block', marginTop: 6, padding: '3px 12px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase' }}>
+                📘 {reportTitle}
+              </div>
+            </div>
+
+            {/* Filter Meta Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 12, fontSize: 11 }}>
+              <div><b style={{ color: '#475569' }}>Class:</b> <span style={{ color: '#0f172a', fontWeight: 700 }}>{filters.className === 'ALL' ? 'All Classes' : (filters.className || 'Not Selected')}</span></div>
+              <div><b style={{ color: '#475569' }}>Section:</b> <span style={{ color: '#2563eb', fontWeight: 700 }}>{filters.sectionName === 'ALL' ? 'All Sections' : (filters.sectionName ? `Section ${filters.sectionName}` : 'All')}</span></div>
+              <div><b style={{ color: '#475569' }}>Subject:</b> <span style={{ color: '#0b4388', fontWeight: 700 }}>{filters.subjectName === 'ALL' || !filters.subjectName ? 'All Subjects' : filters.subjectName}</span></div>
+              <div><b style={{ color: '#475569' }}>Exam / Pattern:</b> <span style={{ color: '#0f172a', fontWeight: 700 }}>{filters.exam || 'ALL'}</span></div>
+              <div><b style={{ color: '#475569' }}>Session:</b> <span style={{ color: '#16a34a', fontWeight: 800 }}>{sessionLabel}</span></div>
+              <div><b style={{ color: '#475569' }}>Issue Date:</b> <span style={{ color: '#0f172a', fontWeight: 700 }}>{currentDateStr}</span></div>
+              <div><b style={{ color: '#475569' }}>Total Units:</b> <span style={{ color: '#1d4ed8', fontWeight: 800 }}>{data.length} Topics</span></div>
+              <div><b style={{ color: '#475569' }}>Type:</b> <span style={{ color: '#475569', fontWeight: 700 }}>Student Syllabus</span></div>
+            </div>
+
+            {/* Student Fill-in Info Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 14, background: '#ffffff', border: '1.5px dashed #cbd5e1', padding: '6px 12px', borderRadius: 6, marginBottom: 14, fontSize: 11 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <b>Student Name:</b> <div style={{ borderBottom: '1px solid #94a3b8', flex: 1, minHeight: 16 }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <b>Roll No:</b> <div style={{ borderBottom: '1px solid #94a3b8', flex: 1, minHeight: 16 }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <b>Admission No:</b> <div style={{ borderBottom: '1px solid #94a3b8', flex: 1, minHeight: 16 }} />
+              </div>
+            </div>
+
+            {/* A4 Student Syllabus Table */}
+            {data.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748b', border: '1px dashed #cbd5e1', borderRadius: 6, fontSize: 13 }}>
+                🔍 <b>No syllabus records match the selected criteria.</b>
+              </div>
+            ) : (
+              <table className="student-print-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 18 }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', color: '#0f172a' }}>
+                    <th style={{ width: '36px', textAlign: 'center' }}>S.N.</th>
+                    <th style={{ width: '70px' }}>Class/Sec</th>
+                    <th style={{ width: '85px' }}>Subject</th>
+                    <th style={{ width: '80px' }}>Month</th>
+                    <th style={{ width: '75px', textAlign: 'center' }}>Exam</th>
+                    <th>Chapter Name & Detailed Topics</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Check</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((x, idx) => (
+                    <tr key={x.id || idx}>
+                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
+                      <td style={{ fontSize: 11, fontWeight: 700 }}>
+                        {x.className}
+                        {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                      </td>
+                      <td style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                      <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                      <td style={{ fontSize: 9, textAlign: 'center' }}>
+                        {x.assessment ? (
+                          <span style={{ display: 'inline-block', padding: '1px 5px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 3, fontWeight: 700 }}>
+                            {x.assessment}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ fontSize: 11 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
+                        {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
+                        <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3, marginTop: 2 }}>{x.topic}</div>
+                        {(x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) && (
+                          <span style={{ display: 'inline-block', marginTop: 3, padding: '1px 6px', background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: 3, fontSize: 9, fontWeight: 700 }}>
+                            🧪 Practical Topic
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
+                        <span style={{ fontSize: 8, color: '#64748b' }}>Done</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Guidelines Box */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #1d4ed8', borderRadius: 6, padding: '8px 12px', fontSize: 10.5, color: '#334155', marginBottom: 16 }}>
+              <b style={{ color: '#0f172a', display: 'block', marginBottom: 3 }}>📌 Important Instructions for Students & Parents:</b>
+              <ol style={{ marginLeft: 16, margin: 0, padding: 0 }}>
+                <li>Follow the month-wise chapter plan and complete all syllabus topics before term examinations.</li>
+                <li>Maintain regular class notebooks, practical files, and homework copies for internal assessment marking.</li>
+                <li>For any syllabus doubts, consult your respective subject teacher during school hours.</li>
+              </ol>
+            </div>
+
+            {/* Signatures */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 12, borderTop: '1.5px solid #cbd5e1' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ borderBottom: '1.5px dashed #64748b', height: 28, width: '80%', margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>Subject Teacher Signature</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Date: ____/____/2026</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ borderBottom: '1.5px dashed #64748b', height: 28, width: '80%', margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>Class Teacher Signature</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Savitri Balika Inter College</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ borderBottom: '1.5px dashed #64748b', height: 28, width: '80%', margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>Principal Seal & Signature</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Authorized Academic Curriculum</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', close }) {
+  const schoolProfile = getStoredSchool ? getStoredSchool() : { name: 'SAVITRI BALIKA INTER COLLEGE', address: 'KHUTAHA, ROAD JAMUANHIYA MIRZAPUR' };
+  const schoolName = schoolProfile.name || 'SAVITRI BALIKA INTER COLLEGE';
+  const schoolAddress = schoolProfile.address || 'KHUTAHA, ROAD JAMUANHIYA MIRZAPUR';
+  const sessionLabel = currentSession ? currentSession.replace('-', '–') : '2026–27';
+  const reportTitle = `OFFICIAL CLASSROOM SOFT BOARD SYLLABUS — SESSION ${sessionLabel}`;
+
+  const currentDateStr = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const handleOpenInNewTab = () => {
+    const activeLogoUrl = (() => {
+      try {
+        const direct = localStorage.getItem('school_logo_custom') || JSON.parse(localStorage.getItem('school_profile_settings') || '{}').logoUrl;
+        if (direct) return direct;
+      } catch(e) {}
+      return window.location.origin + '/school-logo.png';
+    })();
+
+    const escapeHtml = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    const rowsHtml = data.map((x, idx) => {
+      const sectionText = x.section ? `<span style="display:inline-block;margin-left:4px;padding:1px 5px;background:#dbeafe;color:#1e40af;border-radius:3px;font-size:9px;font-weight:700;">Sec ${escapeHtml(x.section)}</span>` : '';
+      const assessmentText = x.assessment ? `<span style="display:inline-block;padding:2px 6px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:4px;font-size:9px;font-weight:700;">${escapeHtml(x.assessment)}</span>` : '';
+      const hindiText = x.hindi ? `<div style="font-size:10px;color:#475569;font-weight:500;margin-top:2px;">( ${escapeHtml(x.hindi)} )</div>` : '';
+      const practicalTag = (x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) ? `<span style="display:inline-block;margin-top:4px;padding:1px 6px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:3px;font-size:9px;font-weight:700;">🧪 Practical Topic</span>` : '';
+
+      return `
+        <tr>
+          <td style="text-align:center;font-weight:700;font-size:11px;">${idx + 1}</td>
+          <td style="font-size:11px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
+          <td style="font-size:11px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td>
+          <td style="font-size:10.5px;font-weight:600;">${escapeHtml(x.month || '')}</td>
+          <td style="font-size:10px;text-align:center;">${assessmentText || '—'}</td>
+          <td style="font-size:11px;">
+            <div style="font-weight:700;color:#0f172a;margin-bottom:2px;font-size:11.5px;">${escapeHtml(x.chapter || '')}</div>
+            ${hindiText}
+            <div style="font-size:10px;color:#334155;white-space:pre-line;line-height:1.35;margin-top:3px;">${escapeHtml(x.topic || '')}</div>
+            ${practicalTag}
+          </td>
+          <td style="text-align:center;vertical-align:middle;">
+            <div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div>
+            <div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div>
+            <span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const filterSummaryClass = filters.className === 'ALL' ? 'All Classes (Nursery–12th)' : (filters.className || 'All Classes');
+    const filterSummarySection = filters.sectionName === 'ALL' ? 'All Sections' : (filters.sectionName ? `Section ${filters.sectionName}` : 'All');
+    const filterSummarySubject = filters.subjectName === 'ALL' || !filters.subjectName ? 'All Subjects' : filters.subjectName;
+    const filterExamText = filters.exam === 'ALL' || !filters.exam ? 'Full Academic Session Syllabus' : filters.exam;
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Classroom Soft Board Syllabus - ${escapeHtml(schoolName)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .top-action-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #059669;
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+    .top-action-bar .btn-print {
+      background: #ffffff;
+      color: #059669;
+      border: none;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: all 0.2s;
+    }
+    .top-action-bar .btn-print:hover {
+      background: #f0fdf4;
+      transform: translateY(-1px);
+    }
+    .top-action-bar .btn-close {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .top-action-bar .btn-close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .page-wrapper {
+      max-width: 1060px;
+      margin: 24px auto;
+      background: #ffffff;
+      padding: 32px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border: 2px solid #a7f3d0;
+    }
+
+    .school-header {
+      text-align: center;
+      border-bottom: 2.5px solid #059669;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .school-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #065f46;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .school-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 3px;
+    }
+    .report-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 5px 16px;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1.5px solid #a7f3d0;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .notice-board-strip {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 18px;
+      font-size: 11px;
+    }
+    .meta-grid b { color: #475569; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      page-break-inside: auto;
+      table-layout: fixed;
+    }
+    thead {
+      display: table-header-group;
+    }
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    th {
+      background: #ecfdf5 !important;
+      color: #065f46;
+      font-weight: 700;
+      padding: 8px 6px;
+      border: 1px solid #86efac;
+      text-align: left;
+      font-size: 10.5px;
+    }
+    td {
+      padding: 8px 6px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+
+    .instructions-box {
+      margin-top: 20px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 4px solid #059669;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 10.5px;
+      color: #166534;
+      page-break-inside: avoid;
+    }
+    .instructions-box b {
+      color: #065f46;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .instructions-box ol {
+      margin-left: 18px;
+    }
+    .instructions-box li {
+      margin-bottom: 2px;
+    }
+
+    .signatures-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1.5px solid #cbd5e1;
+      page-break-inside: avoid;
+    }
+    .sig-block {
+      text-align: center;
+    }
+    .sig-line {
+      border-bottom: 1.5px dashed #64748b;
+      height: 34px;
+      width: 80%;
+      margin: 0 auto 8px;
+    }
+    .sig-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .sig-sub {
+      font-size: 9.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm 7mm;
+      }
+      body {
+        background: #ffffff;
+      }
+      .top-action-bar {
+        display: none !important;
+      }
+      .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+      }
+      th {
+        background: #ecfdf5 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .meta-grid, .notice-board-strip, .instructions-box {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-action-bar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">📌</span>
+      <div>
+        <div style="font-weight:800;font-size:15px;">Classroom Soft Board Syllabus (A4 Display View & Print)</div>
+        <div style="font-size:11px;opacity:0.9;">Official classroom notice board copy — press <b>Print / Save as PDF (Ctrl + P)</b> to print and pin in classroom</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button class="btn-print" onclick="window.print()">
+        🖨️ Print for Soft Board (Ctrl + P)
+      </button>
+      <button class="btn-close" onclick="window.close()">
+        ✕ Close Tab
+      </button>
+    </div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="school-header">
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;">
+        <img src="${activeLogoUrl}" alt="School Logo" style="width:56px;height:56px;border-radius:50%;object-fit:cover;background:#ffffff;border:1.5px solid #065f46;box-shadow:0 2px 6px rgba(0,0,0,0.08);" onerror="this.src='/school-logo.png'" />
+        <div style="text-align:left;">
+          <div class="school-title">${escapeHtml(schoolName)}</div>
+          <div class="school-subtitle">📍 ADDRESS: ${escapeHtml(schoolAddress)}</div>
+        </div>
+      </div>
+      <div class="report-badge">📌 ${escapeHtml(reportTitle)}</div>
+    </div>
+
+    <div class="notice-board-strip">
+      <div><b>📌 DISPLAY LOCATION:</b> <span style="font-weight:700;color:#065f46;">Classroom Soft Board / Bulletin Board</span></div>
+      <div><b>ROOM / HALL NO:</b> <span style="display:inline-block;border-bottom:1px solid #065f46;width:80px;height:14px;"></span></div>
+      <div><b>CLASS TEACHER:</b> <span style="display:inline-block;border-bottom:1px solid #065f46;width:140px;height:14px;"></span></div>
+    </div>
+
+    <div class="meta-grid">
+      <div><b>Class & Group:</b> <span style="font-weight:700;color:#0f172a;">${escapeHtml(filterSummaryClass)}</span></div>
+      <div><b>Section:</b> <span style="color:#059669;font-weight:700;">${escapeHtml(filterSummarySection)}</span></div>
+      <div><b>Subject Scope:</b> <span style="font-weight:700;color:#0b4388;">${escapeHtml(filterSummarySubject)}</span></div>
+      <div><b>Exam / Term:</b> <span style="font-weight:700;">${escapeHtml(filterExamText)}</span></div>
+      <div><b>Academic Session:</b> <span style="font-weight:800;color:#16a34a;">${escapeHtml(sessionLabel)}</span></div>
+      <div><b>Display Date:</b> <span style="font-weight:700;">${escapeHtml(currentDateStr)}</span></div>
+      <div><b>Total Units / Topics:</b> <span style="font-weight:800;color:#059669;">${data.length} Units</span></div>
+      <div><b>Document Type:</b> <span style="font-weight:700;color:#047857;">Official Soft Board Notice</span></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px;text-align:center;">S.N.</th>
+          <th style="width:75px;">Class/Sec</th>
+          <th style="width:90px;">Subject</th>
+          <th style="width:85px;">Month</th>
+          <th style="width:80px;text-align:center;">Exam Pattern</th>
+          <th>Chapter Name & Detailed Topics (Hindi & English)</th>
+          <th style="width:75px;text-align:center;">Target & Sign</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml || '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">No syllabus records match the selected filter</td></tr>'}
+      </tbody>
+    </table>
+
+    <div class="instructions-box">
+      <b>📌 Guidelines for Classroom Soft Board & Faculty:</b>
+      <ol>
+        <li>This official syllabus document must remain pinned on the classroom soft board throughout the academic session.</li>
+        <li>Subject teachers are advised to align regular lecture plans, student homework, and notebook checks strictly as per the month schedule.</li>
+        <li>Students should monitor their monthly chapter milestones and prepare for scheduled unit tests / terminal examinations accordingly.</li>
+      </ol>
+    </div>
+
+    <div class="signatures-section">
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title">Class Teacher Signature</div>
+        <div class="sig-sub">Date: ____/____/2026</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title">Academic Coordinator</div>
+        <div class="sig-sub">Savitri Balika Inter College</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-title" style="color:#065f46;">Principal Seal & Signature</div>
+        <div class="sig-sub">Authorized Academic Curriculum</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    try {
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, '_blank');
+      if (!printWindow) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.target = '_blank';
+        link.rel = 'noopener,noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (e) {
+      console.error('Error creating print blob:', e);
+      const fallbackWin = window.open('', '_blank');
+      if (fallbackWin) {
+        fallbackWin.document.open();
+        fallbackWin.document.write(fullHtml);
+        fallbackWin.document.close();
+      }
+    }
+  };
+
+  return (
+    <div className="modal-backdrop principal-print-backdrop" onClick={close} style={{ zIndex: 99999 }}>
+      <div
+        className="modal"
+        style={{
+          maxWidth: 980,
+          width: '95%',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 24,
+          borderRadius: 16,
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          background: '#ffffff',
+          overflow: 'hidden'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal Control Toolbar */}
+        <div className="print-no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: '1px solid #e2e8f0', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <span style={{ fontSize: 10, letterSpacing: 1.2, fontWeight: 700, color: '#059669', textTransform: 'uppercase' }}>
+              📌 Classroom Soft Board Syllabus
+            </span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '3px 0 0' }}>
+              A4 Classroom Soft Board Display Document
+            </h2>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="primary"
+              onClick={handleOpenInNewTab}
+              style={{ background: '#059669', borderColor: '#047857', display: 'inline-flex', gap: 8, alignItems: 'center', padding: '10px 18px', fontWeight: 700, borderRadius: 8, cursor: 'pointer' }}
+            >
+              <Icons.Printer size={18} /> Open in New Tab & Print (Ctrl + P)
+            </button>
+            <button className="modal-close" onClick={close} style={{ position: 'relative', right: 0, top: 0 }}>
+              <Icons.X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Info Toolbar */}
+        <div className="print-no-print" style={{ background: '#ecfdf5', padding: '10px 14px', borderRadius: 8, border: '1px solid #a7f3d0', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#065f46', fontWeight: 600 }}>
+            <span>📌 Total <b>{data.length}</b> Syllabus Topics formatted for classroom soft board display</span>
+          </div>
+          <span style={{ fontSize: 11, color: '#047857', fontWeight: 600 }}>
+            Official classroom copy with faculty guidelines
+          </span>
+        </div>
+
+        {/* Scrollable Document Preview Container */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+          {/* A4 Document Printable Area */}
+          <div className="student-print-area" style={{ background: '#ffffff', color: '#0f172a', padding: '24px 20px', border: '1.5px solid #86efac', borderRadius: 8 }}>
+            {/* Header Section */}
+            <div style={{ textAlign: 'center', borderBottom: '2.5px solid #059669', paddingBottom: 10, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 4 }}>
+                <SchoolLogo size={52} style={{ border: '1.5px solid #065f46', padding: 2, background: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }} />
+                <div style={{ textAlign: 'left' }}>
+                  <h1 style={{ fontSize: 20, fontWeight: 900, color: '#065f46', margin: 0, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                    {schoolName}
+                  </h1>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', margin: '2px 0 0', letterSpacing: 0.4 }}>
+                    📍 ADDRESS: {schoolAddress}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'inline-block', marginTop: 6, padding: '4px 14px', background: '#ecfdf5', color: '#047857', border: '1px solid #86efac', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase' }}>
+                📌 {reportTitle}
+              </div>
+            </div>
+
+            {/* Notice Board Meta Strip */}
+            <div style={{ background: '#f0fdf4', border: '1px solid #86efac', padding: '8px 12px', borderRadius: 6, marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, fontSize: 11 }}>
+              <div><b>📌 DISPLAY:</b> <span style={{ color: '#065f46', fontWeight: 700 }}>Classroom Soft Board</span></div>
+              <div><b>ROOM NO:</b> <span style={{ display: 'inline-block', borderBottom: '1px solid #065f46', width: 70, height: 12 }}></span></div>
+              <div><b>CLASS TEACHER:</b> <span style={{ display: 'inline-block', borderBottom: '1px solid #065f46', width: 120, height: 12 }}></span></div>
+            </div>
+
+            {/* Filter Meta Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 12, fontSize: 11 }}>
+              <div><b style={{ color: '#475569' }}>Class:</b> <span style={{ color: '#0f172a', fontWeight: 700 }}>{filters.className === 'ALL' ? 'All Classes' : (filters.className || 'Not Selected')}</span></div>
+              <div><b style={{ color: '#475569' }}>Section:</b> <span style={{ color: '#059669', fontWeight: 700 }}>{filters.sectionName === 'ALL' ? 'All Sections' : (filters.sectionName ? `Section ${filters.sectionName}` : 'All')}</span></div>
+              <div><b style={{ color: '#475569' }}>Subject Scope:</b> <span style={{ color: '#0b4388', fontWeight: 700 }}>{filters.subjectName === 'ALL' || !filters.subjectName ? 'All Subjects' : filters.subjectName}</span></div>
+              <div><b style={{ color: '#475569' }}>Exam / Pattern:</b> <span style={{ color: '#0f172a', fontWeight: 700 }}>{filters.exam || 'ALL'}</span></div>
+              <div><b style={{ color: '#475569' }}>Session:</b> <span style={{ color: '#16a34a', fontWeight: 800 }}>{sessionLabel}</span></div>
+              <div><b style={{ color: '#475569' }}>Issue Date:</b> <span style={{ color: '#0f172a', fontWeight: 700 }}>{currentDateStr}</span></div>
+              <div><b style={{ color: '#475569' }}>Total Units:</b> <span style={{ color: '#059669', fontWeight: 800 }}>{data.length} Topics</span></div>
+              <div><b style={{ color: '#475569' }}>Type:</b> <span style={{ color: '#047857', fontWeight: 700 }}>Soft Board Copy</span></div>
+            </div>
+
+            {/* A4 Soft Board Syllabus Table */}
+            {data.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748b', border: '1px dashed #cbd5e1', borderRadius: 6, fontSize: 13 }}>
+                🔍 <b>No syllabus records match the selected criteria.</b>
+              </div>
+            ) : (
+              <table className="student-print-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 18 }}>
+                <thead>
+                  <tr style={{ background: '#ecfdf5', color: '#065f46' }}>
+                    <th style={{ width: '36px', textAlign: 'center' }}>S.N.</th>
+                    <th style={{ width: '70px' }}>Class/Sec</th>
+                    <th style={{ width: '85px' }}>Subject</th>
+                    <th style={{ width: '80px' }}>Month</th>
+                    <th style={{ width: '75px', textAlign: 'center' }}>Exam</th>
+                    <th>Chapter Name & Detailed Topics</th>
+                    <th style={{ width: '75px', textAlign: 'center' }}>Target & Sign</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((x, idx) => (
+                    <tr key={x.id || idx}>
+                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
+                      <td style={{ fontSize: 11, fontWeight: 700 }}>
+                        {x.className}
+                        {x.section && <div style={{ fontSize: 9, color: '#059669' }}>Sec {x.section}</div>}
+                      </td>
+                      <td style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                      <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                      <td style={{ fontSize: 9, textAlign: 'center' }}>
+                        {x.assessment ? (
+                          <span style={{ display: 'inline-block', padding: '1px 5px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 3, fontWeight: 700 }}>
+                            {x.assessment}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ fontSize: 11 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
+                        {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
+                        <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.35, marginTop: 3 }}>{x.topic}</div>
+                        {(x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) && (
+                          <span style={{ display: 'inline-block', marginTop: 4, padding: '1px 6px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 3, fontSize: 9, fontWeight: 700 }}>
+                            🧪 Practical Topic
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
+                        <div style={{ borderBottom: '1px solid #94a3b8', width: '80%', margin: '3px auto 2px', height: 8 }} />
+                        <span style={{ fontSize: 8, color: '#059669', fontWeight: 700 }}>Sign</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Guidelines Box */}
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderLeft: '4px solid #059669', borderRadius: 6, padding: '8px 12px', fontSize: 10.5, color: '#166534', marginBottom: 16 }}>
+              <b style={{ color: '#065f46', display: 'block', marginBottom: 3 }}>📌 Guidelines for Classroom Soft Board & Faculty:</b>
+              <ol style={{ marginLeft: 16, margin: 0, padding: 0 }}>
+                <li>This official syllabus document must remain permanently displayed on the classroom soft board.</li>
+                <li>Subject teachers are advised to align regular lecture plans and student notebook checks with this schedule.</li>
+                <li>Students should prepare for scheduled unit tests and terminal examinations accordingly.</li>
+              </ol>
+            </div>
+
+            {/* Signatures */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 12, borderTop: '1.5px solid #cbd5e1' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ borderBottom: '1.5px dashed #64748b', height: 28, width: '80%', margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>Class Teacher Signature</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Date: ____/____/2026</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ borderBottom: '1.5px dashed #64748b', height: 28, width: '80%', margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>Academic Coordinator</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Savitri Balika Inter College</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ borderBottom: '1.5px dashed #64748b', height: 28, width: '80%', margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#065f46' }}>Principal Seal & Signature</div>
+                <div style={{ fontSize: 9, color: '#64748b' }}>Authorized Academic Curriculum</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CreateSessionModal({ close, onCreateSession, currentSession, user }) {
   const [year, setYear] = useState('2027-28');
   const [label, setLabel] = useState('Academic Session 2027–28');
@@ -4632,6 +5990,9 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
 
   const visible = classes.filter(x => x.group === group);
   const config = classGroups[group];
+  const groupSecCount = visible.reduce((acc, c) => acc + (c.sections ? c.sections.length : 0), 0);
+  const totalClassesCount = classes.length;
+  const totalSectionsCount = classes.reduce((acc, c) => acc + (c.sections ? c.sections.length : 0), 0);
 
   return (
     <>
@@ -4657,15 +6018,52 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
 
       <ToastNotification toast={toast} onClose={() => setToast('')} />
 
-      <section className="card" style={{ marginBottom: 18, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+      {/* Dynamic Summary Cards for Class & Section */}
+      <section className="stats" style={{ marginBottom: 18 }}>
+        <div className="stat">
+          <div>
+            <small>{config.label} Classes</small>
+            <strong>{visible.length}</strong>
+          </div>
+          <i><Icons.GraduationCap /></i>
+        </div>
+        <div className="stat">
+          <div>
+            <small>Active Sections in Group</small>
+            <strong>{groupSecCount}</strong>
+          </div>
+          <i><Icons.Layers /></i>
+        </div>
+        <div className="stat">
+          <div>
+            <small>Total School Classes</small>
+            <strong>{totalClassesCount}</strong>
+          </div>
+          <i><Icons.Building2 /></i>
+        </div>
+        <div className="stat">
+          <div>
+            <small>Total Active Sections</small>
+            <strong>{totalSectionsCount}</strong>
+          </div>
+          <i><Icons.CheckCircle /></i>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginBottom: 20, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <b>{config.label}</b>
-          <p style={{ marginTop: 3, fontSize: 12, color: '#72839a' }}>
-            Recommended classes for this group: {config.classes.join(', ')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <b style={{ fontSize: 15 }}>{config.label} Overview</b>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: '#eaf3ff', color: '#1264c3' }}>
+              {visible.length} Classes Configured
+            </span>
+          </div>
+          <p style={{ marginTop: 4, fontSize: 12, color: '#72839a' }}>
+            Recommended curriculum classes: <b>{config.classes.join(', ')}</b>
           </p>
         </div>
-        <button className="secondary" onClick={() => setAdding(true)} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
-          <Icons.Plus size={15} /> Add Class / Section
+        <button className="primary" onClick={() => setAdding(true)} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
+          <Icons.Plus size={15} /> Add New Class
         </button>
       </section>
 
@@ -4722,12 +6120,12 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
           <div className="class-box" key={c.name} style={{ position: 'relative' }}>
             <div className="class-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div className="class-icon"><Icons.GraduationCap /></div>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   className="icon-btn"
                   onClick={() => setEditingClass(c)}
                   title="Edit Class & Sections"
-                  style={{ width: 30, height: 30, borderRadius: 6, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                  style={{ width: 32, height: 32, borderRadius: 7, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                 >
                   <Icons.Pencil size={14} />
                 </button>
@@ -4735,24 +6133,26 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
                   className="icon-btn"
                   onClick={() => setPendingDelete({ type: 'CLASS', target: c.name, description: `Class "${c.name}" and all its active sections` })}
                   title="Delete Class"
-                  style={{ width: 30, height: 30, borderRadius: 6, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                  style={{ width: 32, height: 32, borderRadius: 7, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                 >
                   <Icons.Trash2 size={14} />
                 </button>
               </div>
             </div>
             <h2>{c.name}</h2>
-            <p>{c.sections.length} active section{c.sections.length === 1 ? '' : 's'}</p>
+            <p style={{ margin: '4px 0 14px', fontSize: 12, color: '#64748b' }}>
+              <b>{c.sections.length}</b> active section{c.sections.length === 1 ? '' : 's'}
+            </p>
 
-            <div className="section-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '10px 0' }}>
+            <div className="section-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '10px 0 16px' }}>
               {c.sections.map(x => (
-                <span key={x} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: '#f1f5f9', borderRadius: 12, fontSize: 11, fontWeight: 600, color: '#334155' }}>
+                <span key={x} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', background: '#f1f5f9', borderRadius: 14, fontSize: 11.5, fontWeight: 600, color: '#334155' }}>
                   Section {x}
                   <button
                     type="button"
                     onClick={() => setPendingDelete({ type: 'SECTION', target: { cObj: c, secName: x }, description: `Section ${x} from ${c.name}` })}
                     title={`Delete Section ${x}`}
-                    style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: 11, padding: 0, lineHeight: 1 }}
+                    style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }}
                   >
                     ×
                   </button>
@@ -4765,21 +6165,21 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
                   handleQuickAddSection(c, nextSec);
                 }}
                 title="Add next section"
-                style={{ border: '1px dashed #cbd5e1', background: '#ffffff', borderRadius: 12, padding: '3px 8px', fontSize: 11, color: '#2563eb', cursor: 'pointer', fontWeight: 600 }}
+                style={{ border: '1px dashed #cbd5e1', background: '#ffffff', borderRadius: 14, padding: '4px 10px', fontSize: 11.5, color: '#2563eb', cursor: 'pointer', fontWeight: 600 }}
               >
-                + Add
+                + Add Section
               </button>
             </div>
 
-            <button className="text-btn" onClick={() => setEditingClass(c)} style={{ marginTop: 6 }}>
-              Manage sections <Icons.ArrowRight size={15} />
+            <button className="text-btn" onClick={() => setEditingClass(c)} style={{ marginTop: 'auto', paddingTop: 8 }}>
+              Manage sections & settings <Icons.ArrowRight size={15} />
             </button>
           </div>
         ))}
         {!visible.length && (
-          <div className="card" style={{ gridColumn: '1/-1', textAlign: 'center', padding: 32, color: '#64748b' }}>
-            <p style={{ margin: 0 }}>No classes created yet for <b>{config.label}</b>.</p>
-            <button className="primary" onClick={() => setAdding(true)} style={{ marginTop: 12, display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+          <div className="card" style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40, color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: 15 }}>No classes created yet for <b>{config.label}</b>.</p>
+            <button className="primary" onClick={() => setAdding(true)} style={{ marginTop: 14, display: 'inline-flex', gap: 6, alignItems: 'center' }}>
               <Icons.Plus size={16} /> Create First Class
             </button>
           </div>
@@ -4800,6 +6200,8 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
         [uploadOpen,setUploadOpen]=useState(false),
         [addOpen,setAddOpen]=useState(false),
         [checklistOpen,setChecklistOpen]=useState(false),
+        [studentSyllabusOpen,setStudentSyllabusOpen]=useState(false),
+        [softBoardOpen,setSoftBoardOpen]=useState(false),
         [editingTopic,setEditingTopic]=useState(null),
         [pendingDeleteTopic,setPendingDeleteTopic]=useState(null);
 
@@ -4930,6 +6332,44 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
           type="button"
           onClick={() => {
             if (!hasClassSelected) {
+              setToast('⚠️ Please select a Class or "All Classes" first to generate Student Syllabus.');
+              return;
+            }
+            if (!hasSectionSelected) {
+              setToast('⚠️ Please select a Section or "All Sections" first to generate Student Syllabus.');
+              return;
+            }
+            setStudentSyllabusOpen(true);
+          }}
+          style={{ display: 'inline-flex', gap: 7, alignItems: 'center', fontWeight: 700, color: '#1d4ed8', borderColor: '#bfdbfe', background: '#eff6ff' }}
+          title="Generate A4 Student Academic Syllabus PDF to distribute to students"
+        >
+          <Icons.GraduationCap size={16} color="#1d4ed8"/> 🎓 Student Syllabus PDF
+        </button>
+        <button
+          className="secondary"
+          type="button"
+          onClick={() => {
+            if (!hasClassSelected) {
+              setToast('⚠️ Please select a Class or "All Classes" first to generate Soft Board Syllabus.');
+              return;
+            }
+            if (!hasSectionSelected) {
+              setToast('⚠️ Please select a Section or "All Sections" first to generate Soft Board Syllabus.');
+              return;
+            }
+            setSoftBoardOpen(true);
+          }}
+          style={{ display: 'inline-flex', gap: 7, alignItems: 'center', fontWeight: 700, color: '#047857', borderColor: '#a7f3d0', background: '#ecfdf5' }}
+          title="Generate A4 Classroom Display / Soft Board Syllabus PDF to pin in class"
+        >
+          <Icons.Pin size={16} color="#059669"/> 📌 Class Soft Board PDF
+        </button>
+        <button
+          className="secondary"
+          type="button"
+          onClick={() => {
+            if (!hasClassSelected) {
               setToast('⚠️ Please select a Class or "All Classes" first to generate Principal checklist.');
               return;
             }
@@ -5044,6 +6484,36 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
               type="button"
               onClick={() => {
                 if (!hasClassSelected || !hasSectionSelected) {
+                  setToast('⚠️ Please select Class & Section first to generate Student Syllabus.');
+                  return;
+                }
+                setStudentSyllabusOpen(true);
+              }}
+              style={{ display: 'inline-flex', gap: 6, alignItems: 'center', color: '#1d4ed8', borderColor: '#bfdbfe', background: '#eff6ff', fontWeight: 700, fontSize: 12 }}
+              title="Generate A4 Student Academic Syllabus PDF"
+            >
+              <Icons.GraduationCap size={15} color="#1d4ed8"/> 🎓 Student Syllabus PDF
+            </button>
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                if (!hasClassSelected || !hasSectionSelected) {
+                  setToast('⚠️ Please select Class & Section first to generate Soft Board Syllabus.');
+                  return;
+                }
+                setSoftBoardOpen(true);
+              }}
+              style={{ display: 'inline-flex', gap: 6, alignItems: 'center', color: '#047857', borderColor: '#a7f3d0', background: '#ecfdf5', fontWeight: 700, fontSize: 12 }}
+              title="Generate A4 Classroom Soft Board Display PDF"
+            >
+              <Icons.Pin size={15} color="#059669"/> 📌 Class Soft Board PDF
+            </button>
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                if (!hasClassSelected || !hasSectionSelected) {
                   setToast('⚠️ Please select Class & Section first to generate Principal checklist.');
                   return;
                 }
@@ -5151,6 +6621,36 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
           </div>
         </section>
       </>
+    )}
+
+    {studentSyllabusOpen && (
+      <StudentSyllabusModal
+        data={data}
+        filters={{
+          group,
+          className: isAllClass ? 'ALL' : className,
+          sectionName: isAllSection ? 'ALL' : sectionName,
+          subjectName: isAllSubject ? 'ALL' : subjectName,
+          exam
+        }}
+        currentSession={currentSession}
+        close={() => setStudentSyllabusOpen(false)}
+      />
+    )}
+
+    {softBoardOpen && (
+      <SoftBoardSyllabusModal
+        data={data}
+        filters={{
+          group,
+          className: isAllClass ? 'ALL' : className,
+          sectionName: isAllSection ? 'ALL' : sectionName,
+          subjectName: isAllSubject ? 'ALL' : subjectName,
+          exam
+        }}
+        currentSession={currentSession}
+        close={() => setSoftBoardOpen(false)}
+      />
     )}
 
     {checklistOpen && (
@@ -6306,6 +7806,8 @@ function Settings({
   onOpenDeleteSession = () => {},
   onOpenResetStatus = () => {}
 }) {
+  const sortedSessions = React.useMemo(() => sortSessions(sessions), [sessions]);
+
   return (
     <>
       <PageHead eyebrow="BRANDING & CONFIGURATION" title="School Settings" text="Update school identity used throughout the tracker" />
@@ -6337,7 +7839,7 @@ function Settings({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {sessions.map(s => {
+          {sortedSessions.map(s => {
             const stats = getSessionTopicStats(s.id);
             const isActive = s.id === currentSession;
 
@@ -6508,94 +8010,180 @@ function Profile({user}){
     if(!file)return;
     if(file.size>2*1024*1024){flash('error','Image too large. Max 2MB.');return;}
     const reader=new FileReader();
-    reader.onload=ev=>{const img=ev.target.result;setAvatarImg(img);localStorage.setItem('avatarImg',img);flash('success','Profile photo updated!');};
+    reader.onload=ev=>{
+      const img=ev.target.result;
+      setAvatarImg(img);
+      localStorage.setItem('avatarImg',img);
+      window.dispatchEvent(new Event('avatar_updated'));
+      flash('success','Profile photo updated!');
+    };
     reader.readAsDataURL(file);
   }
 
-  function removePhoto(){setAvatarImg(null);localStorage.removeItem('avatarImg');flash('success','Photo removed.');}
+  function removePhoto(){
+    setAvatarImg(null);
+    localStorage.removeItem('avatarImg');
+    window.dispatchEvent(new Event('avatar_updated'));
+    flash('success','Photo removed.');
+  }
 
   return <>
-    <PageHead eyebrow="ACCOUNT" title="My Profile" text="Your personal account settings"/>
+    <PageHead eyebrow="ACCOUNT" title="My Profile" text="Your personal account credentials and institutional settings"/>
     {msg&&<div className={`profile-msg profile-msg-${msg.type}`}>{msg.type==='success'?<Icons.CheckCircle size={16}/>:<Icons.AlertCircle size={16}/>}<span>{msg.text}</span></div>}
+    
     <div className="profile-layout">
-      {/* Left — Avatar Card */}
+      {/* Left — Avatar & Overview Card */}
       <section className="card profile-avatar-card">
         <div className="profile-avatar-wrap">
           {avatarImg
             ?<img src={avatarImg} alt="avatar" className="profile-photo"/>
-            :<div className="big-avatar" style={{background:avatarColor}}>{initials}</div>}
+            :<div className="big-avatar" style={{background:avatarColor,width:96,height:96,fontSize:28}}>{initials}</div>}
           {editing&&<button className="avatar-cam-btn" onClick={()=>fileRef.current.click()} title="Change photo"><Icons.Camera size={15}/></button>}
         </div>
         <input type="file" accept="image/*" ref={fileRef} style={{display:'none'}} onChange={handlePhoto}/>
-        <h2 style={{marginTop:14}}>{user.name}</h2>
-        <Status value={user.role==='ADMIN'?'Admin':'Computer Operator'}/>
+        <h2 style={{marginTop:14,fontSize:20}}>{user.name}</h2>
+        <div style={{margin:'6px 0 2px'}}>
+          <Status value={user.role==='ADMIN'?'Admin':'Computer Operator'}/>
+        </div>
         <p className="profile-email">{user.email}</p>
-        {editing&&<>
-          <div className="color-row">
-            <small>Avatar Color</small>
-            <div className="color-swatches">{colors.map(c=><button key={c} className={'swatch'+(avatarColor===c?' active':'')} style={{background:c}} onClick={()=>{setAvatarColor(c);localStorage.setItem('avatarColor',c)}}/>)}</div>
-          </div>
-          {avatarImg&&<button className="remove-photo-btn" onClick={removePhoto}><Icons.Trash2 size={13}/> Remove Photo</button>}
-        </>}
-        {!editing
-          ?<button className="primary" style={{marginTop:18,width:'100%'}} onClick={()=>{setEditing(true);setTab('info')}}><Icons.Pencil size={15}/>Edit Profile</button>
-          :<button className="secondary" style={{marginTop:12,width:'100%'}} onClick={()=>{setEditing(false);setMsg(null)}}><Icons.X size={15}/>Cancel</button>}
-      </section>
 
-      {/* Right — Edit Forms */}
-      {editing&&<section className="card profile-edit-card">
-        <div className="profile-tabs">
-          <button className={'profile-tab'+(tab==='info'?' active':'')} onClick={()=>setTab('info')}><Icons.User size={15}/>Account Info</button>
-          <button className={'profile-tab'+(tab==='password'?' active':'')} onClick={()=>setTab('password')}><Icons.Lock size={15}/>Change Password</button>
+        <div className="profile-badge-strip">
+          <div className="profile-badge-item">
+            <Icons.Calendar size={14} style={{color:'#1264c3'}}/>
+            <div>
+              <small style={{display:'block',fontSize:9,color:'#94a3b8',textTransform:'uppercase',fontWeight:700}}>Session</small>
+              <b>2026-27 Active</b>
+            </div>
+          </div>
+          <div className="profile-badge-item">
+            <Icons.ShieldCheck size={14} style={{color:'#16a34a'}}/>
+            <div>
+              <small style={{display:'block',fontSize:9,color:'#94a3b8',textTransform:'uppercase',fontWeight:700}}>Status</small>
+              <b>Verified & Synced</b>
+            </div>
+          </div>
         </div>
 
-        {tab==='info'&&<form onSubmit={saveInfo} className="profile-form">
-          <label>Full Name<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></label>
-          <label>Email Address
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/>
-            <small className="field-hint"><Icons.Info size={11}/> A confirmation link will be sent to new email</small>
-          </label>
-          <label>Role<input value={user.role==='ADMIN'?'Administrator':'Computer Operator'} disabled style={{opacity:.6}}/></label>
-          <button className="primary full" type="submit" disabled={saving}>{saving?<Icons.LoaderCircle className="spin" size={16}/>:<Icons.Save size={15}/>}{saving?'Saving…':'Save Changes'}</button>
-        </form>}
-
-        {tab==='password'&&<form onSubmit={changePassword} className="profile-form">
-          <label>Current Password
-            <div className="password">
-              <input type={showCur?'text':'password'} value={curPwd} onChange={e=>setCurPwd(e.target.value)} placeholder="Enter current password" autoComplete="current-password"/>
-              <button type="button" onClick={()=>setShowCur(!showCur)}>{showCur?<Icons.EyeOff size={17}/>:<Icons.Eye size={17}/>}</button>
-            </div>
-          </label>
-          <label>New Password
-            <div className="password">
-              <input type={showNew?'text':'password'} value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="Min. 6 characters" autoComplete="new-password"/>
-              <button type="button" onClick={()=>setShowNew(!showNew)}>{showNew?<Icons.EyeOff size={17}/>:<Icons.Eye size={17}/>}</button>
-            </div>
-          </label>
-          <label>Confirm New Password
-            <div className="password">
-              <input type="password" value={confPwd} onChange={e=>setConfPwd(e.target.value)} placeholder="Repeat new password" autoComplete="new-password"/>
-            </div>
-            {newPwd&&confPwd&&newPwd!==confPwd&&<small className="field-hint error"><Icons.AlertCircle size={11}/> Passwords don't match</small>}
-            {newPwd&&confPwd&&newPwd===confPwd&&<small className="field-hint success"><Icons.CheckCircle size={11}/> Passwords match</small>}
-          </label>
-          <div className="pwd-strength">
-            <small>Strength: </small>
-            {[1,2,3,4].map(i=><span key={i} className={'pwd-bar'+(newPwd.length>=i*3?' filled':'')} style={{background:newPwd.length>=12?'#4ade80':newPwd.length>=6?'#fbbf24':'#ef4444'}}/>)}
-            <small style={{marginLeft:6}}>{newPwd.length===0?'—':newPwd.length<6?'Weak':newPwd.length<12?'Medium':'Strong'}</small>
+        {editing&&<>
+          <div className="color-row">
+            <small>Avatar Theme Color</small>
+            <div className="color-swatches">{colors.map(c=><button key={c} className={'swatch'+(avatarColor===c?' active':'')} style={{background:c}} onClick={()=>{setAvatarColor(c);localStorage.setItem('avatarColor',c);window.dispatchEvent(new Event('avatar_updated'));}}/>)}</div>
           </div>
-          <button className="primary full" type="submit" disabled={saving||newPwd!==confPwd||newPwd.length<6}>{saving?<Icons.LoaderCircle className="spin" size={16}/>:<Icons.Lock size={15}/>}{saving?'Updating…':'Update Password'}</button>
-        </form>}
-      </section>}
+          {avatarImg&&<button className="remove-photo-btn" onClick={removePhoto}><Icons.Trash2 size={13}/> Remove Custom Photo</button>}
+        </>}
+        {!editing
+          ?<button className="primary" style={{marginTop:18,width:'100%'}} onClick={()=>{setEditing(true);setTab('info')}}><Icons.Pencil size={15}/>Edit Account Settings</button>
+          :<button className="secondary" style={{marginTop:14,width:'100%'}} onClick={()=>{setEditing(false);setMsg(null)}}><Icons.X size={15}/>Cancel Editing</button>}
+      </section>
 
-      {!editing&&<section className="card profile-info-card">
-        <h3 style={{fontSize:15,marginBottom:18,color:'#17345b'}}>Account Details</h3>
-        <div className="profile-detail-row"><Icons.User size={16}/><div><small>Full Name</small><b>{user.name}</b></div></div>
-        <div className="profile-detail-row"><Icons.Mail size={16}/><div><small>Email Address</small><b>{user.email}</b></div></div>
-        <div className="profile-detail-row"><Icons.Shield size={16}/><div><small>Role</small><b>{user.role==='ADMIN'?'Administrator':'Computer Operator'}</b></div></div>
-        <div className="profile-detail-row"><Icons.Building2 size={16}/><div><small>School</small><b>SAVITRI BALIKA INTER COLLEGE</b></div></div>
-        <div className="profile-detail-row"><Icons.MapPin size={16}/><div><small>Location</small><b>Khutaha Road, Jamunahiya, Mirzapur</b></div></div>
-      </section>}
+      {/* Right — Edit Forms / Rich Account Dashboard */}
+      {editing ? (
+        <section className="card profile-edit-card">
+          <div className="profile-tabs">
+            <button className={'profile-tab'+(tab==='info'?' active':'')} onClick={()=>setTab('info')}><Icons.User size={15}/>Personal Information</button>
+            <button className={'profile-tab'+(tab==='password'?' active':'')} onClick={()=>setTab('password')}><Icons.Lock size={15}/>Security & Password</button>
+          </div>
+
+          {tab==='info'&&<form onSubmit={saveInfo} className="profile-form">
+            <label>Full Name<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/></label>
+            <label>Email Address
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/>
+              <small className="field-hint"><Icons.Info size={11}/> A confirmation link will be sent to new email if changed</small>
+            </label>
+            <label>Role<input value={user.role==='ADMIN'?'Administrator (Full Access)':'Computer Operator (Operational Access)'} disabled style={{opacity:.65,background:'#f1f5f9'}}/></label>
+            <button className="primary full" type="submit" disabled={saving} style={{marginTop:8}}>
+              {saving?<Icons.LoaderCircle className="spin" size={16}/>:<Icons.Save size={15}/>}
+              {saving?'Saving Changes…':'Save Profile Details'}
+            </button>
+          </form>}
+
+          {tab==='password'&&<form onSubmit={changePassword} className="profile-form">
+            <label>Current Password
+              <div className="password">
+                <input type={showCur?'text':'password'} value={curPwd} onChange={e=>setCurPwd(e.target.value)} placeholder="Enter current password" autoComplete="current-password"/>
+                <button type="button" onClick={()=>setShowCur(!showCur)}>{showCur?<Icons.EyeOff size={17}/>:<Icons.Eye size={17}/>}</button>
+              </div>
+            </label>
+            <label>New Password
+              <div className="password">
+                <input type={showNew?'text':'password'} value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="Min. 6 characters" autoComplete="new-password"/>
+                <button type="button" onClick={()=>setShowNew(!showNew)}>{showNew?<Icons.EyeOff size={17}/>:<Icons.Eye size={17}/>}</button>
+              </div>
+            </label>
+            <label>Confirm New Password
+              <div className="password">
+                <input type="password" value={confPwd} onChange={e=>setConfPwd(e.target.value)} placeholder="Repeat new password" autoComplete="new-password"/>
+              </div>
+              {newPwd&&confPwd&&newPwd!==confPwd&&<small className="field-hint error"><Icons.AlertCircle size={11}/> Passwords do not match</small>}
+              {newPwd&&confPwd&&newPwd===confPwd&&<small className="field-hint success"><Icons.CheckCircle size={11}/> Passwords match</small>}
+            </label>
+            <div className="pwd-strength">
+              <small>Strength: </small>
+              {[1,2,3,4].map(i=><span key={i} className={'pwd-bar'+(newPwd.length>=i*3?' filled':'')} style={{background:newPwd.length>=12?'#4ade80':newPwd.length>=6?'#fbbf24':'#ef4444'}}/>)}
+              <small style={{marginLeft:6}}>{newPwd.length===0?'—':newPwd.length<6?'Weak':newPwd.length<12?'Medium':'Strong'}</small>
+            </div>
+            <button className="primary full" type="submit" disabled={saving||newPwd!==confPwd||newPwd.length<6} style={{marginTop:8}}>
+              {saving?<Icons.LoaderCircle className="spin" size={16}/>:<Icons.Lock size={15}/>}
+              {saving?'Updating Password…':'Update Account Password'}
+            </button>
+          </form>}
+        </section>
+      ) : (
+        <section className="card profile-info-card">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18,paddingBottom:12,borderBottom:'2px solid #e5ebf3',flexWrap:'wrap',gap:8}}>
+            <h3 style={{margin:0,fontSize:17,color:'#17345b'}}>Account & Institutional Profile</h3>
+            <span style={{fontSize:11.5,fontWeight:600,color:'#1264c3',background:'#eaf3ff',padding:'4px 10px',borderRadius:6}}>
+              Institutional ID: SBIC-2026
+            </span>
+          </div>
+
+          <div className="profile-info-grid">
+            <div className="profile-detail-box">
+              <Icons.User size={18} style={{color:'#1264c3'}}/>
+              <div><small>Full Name</small><b>{user.name}</b></div>
+            </div>
+            <div className="profile-detail-box">
+              <Icons.Mail size={18} style={{color:'#1264c3'}}/>
+              <div><small>Email Address</small><b>{user.email}</b></div>
+            </div>
+            <div className="profile-detail-box">
+              <Icons.Shield size={18} style={{color:'#7c3aed'}}/>
+              <div><small>Role & Clearance</small><b>{user.role==='ADMIN'?'Administrator (Full CRUD)':'Computer Operator (Operational Access)'}</b></div>
+            </div>
+            <div className="profile-detail-box">
+              <Icons.Building2 size={18} style={{color:'#059669'}}/>
+              <div><small>School Institution</small><b>SAVITRI BALIKA INTER COLLEGE</b></div>
+            </div>
+            <div className="profile-detail-box">
+              <Icons.MapPin size={18} style={{color:'#dc2626'}}/>
+              <div><small>Campus Location</small><b>Khutaha Road, Jamunahiya, Mirzapur</b></div>
+            </div>
+            <div className="profile-detail-box">
+              <Icons.GraduationCap size={18} style={{color:'#d97706'}}/>
+              <div><small>Board / Affiliation</small><b>UP Board & English Medium Curriculum</b></div>
+            </div>
+          </div>
+
+          <div style={{marginTop:20,paddingTop:18,borderTop:'1px solid #f0f4f9'}}>
+            <h4 style={{fontSize:13,color:'#475569',textTransform:'uppercase',letterSpacing:.6,marginBottom:12}}>Access & Permissions Overview</h4>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+              {[
+                {label:'Syllabus CRUD Management',icon:Icons.BookOpen,color:'#1264c3'},
+                {label:'Principal Checklist PDF Export',icon:Icons.Printer,color:'#059669'},
+                {label:'Student Academic Syllabus Generator',icon:Icons.FileText,color:'#7c3aed'},
+                {label:'Class & Section Configuration',icon:Icons.GraduationCap,color:'#d97706'},
+                {label:'Academic Session Switching',icon:Icons.Calendar,color:'#0891b2'},
+                {label:'Protected Password Verification',icon:Icons.Lock,color:'#dc2626'}
+              ].map((perm,i)=>(
+                <span key={i} style={{display:'inline-flex',alignItems:'center',gap:6,background:'#f8fafc',border:'1px solid #e2e8f0',padding:'6px 11px',borderRadius:8,fontSize:11.5,fontWeight:600,color:'#334155'}}>
+                  <perm.icon size={13} style={{color:perm.color}}/>
+                  {perm.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   </>;
 }
