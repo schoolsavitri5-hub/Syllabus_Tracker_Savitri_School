@@ -40,22 +40,35 @@ function useSchoolProfile() {
   return profile;
 }
 
-function useAvatarState() {
-  const [avatarImg, setAvatarImg] = useState(() => localStorage.getItem('avatarImg') || null);
+function useAvatarState(user) {
+  const getAvatar = () => {
+    const custom = localStorage.getItem('avatarImg');
+    if (custom) return custom;
+    if (user?.email && localStorage.getItem(`avatarImg_${user.email}`)) {
+      return localStorage.getItem(`avatarImg_${user.email}`);
+    }
+    if (user?.avatar_url || user?.photo || user?.avatar || user?.picture || user?.user_metadata?.avatar_url || user?.user_metadata?.picture) {
+      return user.avatar_url || user.photo || user.avatar || user.picture || user.user_metadata?.avatar_url || user.user_metadata?.picture;
+    }
+    return null;
+  };
+
+  const [avatarImg, setAvatarImg] = useState(() => getAvatar());
   const [avatarColor, setAvatarColor] = useState(() => localStorage.getItem('avatarColor') || '#1264c3');
 
   useEffect(() => {
     const handleAvatarUpdate = () => {
-      setAvatarImg(localStorage.getItem('avatarImg') || null);
+      setAvatarImg(getAvatar());
       setAvatarColor(localStorage.getItem('avatarColor') || '#1264c3');
     };
+    handleAvatarUpdate();
     window.addEventListener('avatar_updated', handleAvatarUpdate);
     window.addEventListener('storage', handleAvatarUpdate);
     return () => {
       window.removeEventListener('avatar_updated', handleAvatarUpdate);
       window.removeEventListener('storage', handleAvatarUpdate);
     };
-  }, []);
+  }, [user]);
 
   return { avatarImg, avatarColor };
 }
@@ -738,11 +751,13 @@ function Footer() {
   );
 }
 async function profileFor(authUser){
-  const {data,error}=await supabase.from('profiles').select('full_name, role, active').eq('id',authUser.id).single();
+  let avatar_url = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null;
+  const {data,error}=await supabase.from('profiles').select('full_name, role, active, avatar_url').eq('id',authUser.id).single();
   if(error)throw error;
   if(!data.active)throw Error('This account is inactive. Please contact the school administrator.');
+  if(data.avatar_url) avatar_url = data.avatar_url;
   const perms = getStoredPermissions(authUser.email, data.role);
-  return {id:authUser.id,name:data.full_name,role:data.role,email:authUser.email,permissions:perms}
+  return {id:authUser.id,name:data.full_name,role:data.role,email:authUser.email,permissions:perms,avatar_url,photo:avatar_url}
 }
 function App(){const [user,setUser]=useState(null),[checking,setChecking]=useState(!!supabase);useEffect(()=>{if(!supabase){setChecking(false);return}let alive=true;const sync=async session=>{if(!session?.user){if(alive){setUser(null);setChecking(false)}return}try{let profile=await profileFor(session.user);if(alive)setUser(profile)}catch(error){if(alive)setUser(null)}finally{if(alive)setChecking(false)}};supabase.auth.getSession().then(({data})=>sync(data.session));const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>sync(session));return()=>{alive=false;subscription.unsubscribe()}},[]);if(checking)return <main className="login"><section className="login-panel"><div className="login-card"><Icons.LoaderCircle className="spin"/><p>Checking secure session…</p></div></section></main>;return <BrowserRouter>{user?<Shell user={user} setUser={setUser}/>:<Login setUser={setUser}/>}</BrowserRouter>}
 function Login({setUser}){const schoolProfile=useSchoolProfile();const [show,setShow]=useState(false),[creating,setCreating]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');const submit=async e=>{e.preventDefault();if(!supabase){setError('Supabase is not configured.');return}let d=new FormData(e.target),email=d.get('email').trim(),password=d.get('password');setLoading(true);setError('');setMessage('');try{if(creating){let fullName=d.get('fullName').trim();let {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name:fullName}}});if(error)throw error;if(data.session){setUser(await profileFor(data.user))}else setMessage('Account created. Check your email and confirm it before signing in.')}else{let {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;setUser(await profileFor(data.user))}}catch(err){setError(err.message||'Sign-in failed.')}finally{setLoading(false)}};return <main className="login"><section className="login-intro"><div className="intro-brand"><Logo/><div><b>SAVITRI SCHOOL</b><small>SYLLABUS TRACKER</small></div></div><div className="orb o1"/><div className="orb o2"/><div className="intro-copy"><span className="eyebrow light">SCHOOL MANAGEMENT PORTAL</span><h1>Progress, clearly in view.</h1><p>A focused workspace for syllabus planning, monthly tracking, and academic progress across every class.</p><div className="school-line"><Icons.MapPin/> <span><b>{schoolProfile.name}</b><br/>{schoolProfile.address}</span></div></div><div className="intro-bottom">School Syllabus Management & Progress Tracking System</div></section><section className="login-panel"><div className="login-card"><div className="mobile-logo"><Logo/></div><span className="eyebrow">SECURE ACCESS</span><h2>{creating?'Create first admin account':'Welcome back'}</h2><p>{creating?'Use your school administrator email':'Sign in to Syllabus Tracker'}</p><form onSubmit={submit}>{creating&&<label>Full name<input required name="fullName" placeholder="Administrator name"/></label>}<label>Email<input required name="email" placeholder="Enter your email" type="email"/></label><label>Password<div className="password"><input required minLength="6" name="password" type={show?'text':'password'} placeholder="Minimum 6 characters"/><button type="button" onClick={()=>setShow(!show)}>{show?<Icons.EyeOff/>:<Icons.Eye/>}</button></div></label>{error&&<div className="error">{error}</div>}{message&&<p className="notice">{message}</p>}<button className="primary full" disabled={loading}>{loading?<><Icons.LoaderCircle className="spin"/> Please wait…</>:(creating?'Create secure account':'Sign in securely')}<Icons.ArrowRight/></button></form><button className="text-btn" type="button" onClick={()=>{setCreating(v=>!v);setError('');setMessage('')}}>{creating?'Already have an account? Sign in':'First time here? Create the admin account'}</button><div className="secure"><Icons.ShieldCheck/> Protected school workspace</div></div></section></main>}
@@ -795,7 +810,7 @@ function Shell({user,setUser}){
   const [sessionToast, setSessionToast] = useState(null);
   const loc=useLocation();
   const title=nav.find(n=>loc.pathname.startsWith(n[0]))?.[1]||'Dashboard';
-  const { avatarImg, avatarColor } = useAvatarState();
+  const { avatarImg, avatarColor } = useAvatarState(user);
 
   React.useEffect(()=>{document.body.classList.toggle('dark',dark);localStorage.setItem('theme',dark?'dark':'light')},[dark]);
 
@@ -1155,7 +1170,7 @@ function Header({title,user,sidebarOpen,onToggleSidebar,dark,setDark,setUser,ses
     return()=>document.removeEventListener('mousedown',handler);
   },[]);
 
-  const { avatarImg, avatarColor } = useAvatarState();
+  const { avatarImg, avatarColor } = useAvatarState(user);
   const loginTime=React.useMemo(()=>new Date(),[]);
   const initials=user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()||'U';
   const activeSessionObj=sessions.find(s=>s.id===currentSession)||{name:currentSession,label:`Academic Session ${currentSession}`};
@@ -1360,7 +1375,7 @@ function CustomChartTooltip({ active, payload, isClass, examLabel }) {
 
 function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSession, onOpenCreateSession, onOpenResetStatus }) {
   const schoolProfile = useSchoolProfile();
-  const { avatarImg, avatarColor } = useAvatarState();
+  const { avatarImg, avatarColor } = useAvatarState(user);
   const { topics, dbClasses, reload, setTopics } = useTopics(currentSession),
         [selectedClass,setSelectedClass]=useState('ALL'),
         [selectedSection,setSelectedSection]=useState('ALL'),
