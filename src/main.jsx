@@ -752,10 +752,9 @@ function Footer() {
 }
 async function profileFor(authUser){
   let avatar_url = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null;
-  const {data,error}=await supabase.from('profiles').select('full_name, role, active, avatar_url').eq('id',authUser.id).single();
+  const {data,error}=await supabase.from('profiles').select('full_name, role, active').eq('id',authUser.id).single();
   if(error)throw error;
   if(!data.active)throw Error('This account is inactive. Please contact the school administrator.');
-  if(data.avatar_url) avatar_url = data.avatar_url;
   const perms = getStoredPermissions(authUser.email, data.role);
   return {id:authUser.id,name:data.full_name,role:data.role,email:authUser.email,permissions:perms,avatar_url,photo:avatar_url}
 }
