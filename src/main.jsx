@@ -3187,12 +3187,6 @@ function PrincipalChecklistModal({ data, filters, close }) {
       return window.location.origin + '/school-logo.png';
     })();
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Pop-up was blocked. Please allow pop-ups for this site to open the printable checklist in a new tab.');
-      return;
-    }
-
     const escapeHtml = (str) => {
       if (!str) return '';
       return String(str)
@@ -3522,10 +3516,29 @@ function PrincipalChecklistModal({ data, filters, close }) {
 </body>
 </html>`;
 
-    printWindow.document.open();
-    printWindow.document.write(fullHtml);
-    printWindow.document.close();
-    printWindow.focus();
+    try {
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, '_blank');
+      if (!printWindow) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.target = '_blank';
+        link.rel = 'noopener,noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (e) {
+      console.error('Error creating print blob:', e);
+      // Fallback
+      const fallbackWin = window.open('', '_blank');
+      if (fallbackWin) {
+        fallbackWin.document.open();
+        fallbackWin.document.write(fullHtml);
+        fallbackWin.document.close();
+      }
+    }
   };
 
   return (
