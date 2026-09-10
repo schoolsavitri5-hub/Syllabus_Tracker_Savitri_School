@@ -3481,7 +3481,7 @@ function PrincipalChecklistModal({ data, filters, close }) {
     <table>
       <thead>
         <tr>
-          <th style="width:32px;text-align:center;">#</th>
+          <th style="width:36px;text-align:center;">S.N.</th>
           <th style="width:75px;">Class/Sec</th>
           <th style="width:90px;">Subject</th>
           <th style="width:85px;">Month/Term</th>
@@ -3671,7 +3671,7 @@ function PrincipalChecklistModal({ data, filters, close }) {
               <table className="principal-print-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20 }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#0f172a' }}>
-                    <th style={{ width: '30px', textAlign: 'center' }}>#</th>
+                    <th style={{ width: '36px', textAlign: 'center' }}>S.N.</th>
                     <th style={{ width: '70px' }}>Class/Sec</th>
                     <th style={{ width: '85px' }}>Subject</th>
                     <th style={{ width: '80px' }}>Month/Term</th>
