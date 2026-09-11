@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react'
 import {createRoot} from 'react-dom/client'
 import {BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useNavigate} from 'react-router-dom'
-import {AreaChart, Area, BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell} from 'recharts'
+import {AreaChart, Area, BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Legend} from 'recharts'
 import * as Icons from 'lucide-react'
 import * as XLSX from 'xlsx'
 import ExcelJS from 'exceljs'
@@ -96,6 +96,13 @@ demoClasses.forEach((className,classIndex)=>{
 })
 const statusValues=['Done','In Progress','Not Done']
 const examPatternDefs = {
+  preprimary: [
+    { id: 'ALL', label: 'All Exams (Full Syllabus)', shortLabel: 'All Exams' },
+    { id: 'PA-1', label: 'PA-1 (Periodic Assessment 1)', shortLabel: 'PA-1' },
+    { id: 'HALF YEARLY', label: 'Half Yearly Examination', shortLabel: 'Half Yearly' },
+    { id: 'PA-2', label: 'PA-2 (Periodic Assessment 2)', shortLabel: 'PA-2' },
+    { id: 'ANNUAL', label: 'Annual Examination', shortLabel: 'Annual' }
+  ],
   primary: [
     { id: 'ALL', label: 'All Exams (Full Syllabus)', shortLabel: 'All Exams' },
     { id: 'PA-1', label: 'PA-1 (Periodic Assessment 1)', shortLabel: 'PA-1' },
@@ -348,7 +355,7 @@ function ToastNotification({ toast, onClose }) {
 function normalizeTopic(row){
   const className=row.classes?.class_name??row.className??'Class 1';
   const section=row.sections?.section_name??row.section??'A';
-  const group=row.classes?.class_group==='PRIMARY'?'primary':row.classes?.class_group==='SENIOR'?'senior':(row.group||(['Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8'].includes(className)?'primary':'senior'));
+  const group=getClassGroup(className);
   let practical = row.practical ?? '';
   let remarks = row.remarks ?? '';
   if (!practical && remarks && remarks.includes('[Practical:')) {
@@ -445,9 +452,12 @@ function useTopics(sessionId){
   const [topics, setTopicsState] = useState(() => {
     try {
       const saved = localStorage.getItem('syllabus_topics_' + activeSession);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeTopic);
+      }
     } catch(e) {}
-    if (activeSession === '2026-27') return seed;
+    if (activeSession === '2026-27') return seed.map(normalizeTopic);
     return [];
   });
   const [dbClasses, setDbClasses] = useState([]);
@@ -459,12 +469,15 @@ function useTopics(sessionId){
     try {
       const saved = localStorage.getItem('syllabus_topics_' + activeSession);
       if (saved) {
-        setTopicsState(JSON.parse(saved));
-        return;
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTopicsState(parsed.map(normalizeTopic));
+          return;
+        }
       }
     } catch(e) {}
     if (activeSession === '2026-27') {
-      setTopicsState(seed);
+      setTopicsState(seed.map(normalizeTopic));
     } else {
       setTopicsState([]);
     }
@@ -472,7 +485,8 @@ function useTopics(sessionId){
 
   const setTopics = (updater) => {
     setTopicsState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const rawNext = typeof updater === 'function' ? updater(prev) : updater;
+      const next = Array.isArray(rawNext) ? rawNext.map(normalizeTopic) : rawNext;
       try {
         localStorage.setItem('syllabus_topics_' + activeSession, JSON.stringify(next));
       } catch(e) {}
@@ -492,6 +506,19 @@ function useTopics(sessionId){
           const norm = data.map(normalizeTopic);
           setTopicsState(norm);
           localStorage.setItem('syllabus_topics_' + activeSession, JSON.stringify(norm));
+        } else {
+          try {
+            const saved = localStorage.getItem('syllabus_topics_' + activeSession);
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setTopicsState(parsed.map(normalizeTopic));
+                return;
+              }
+            }
+          } catch(err) {}
+          const norm = seed.map(normalizeTopic);
+          setTopicsState(norm);
         }
       } catch(e) {
         setError(e.message);
@@ -502,9 +529,14 @@ function useTopics(sessionId){
       try {
         const saved = localStorage.getItem('syllabus_topics_' + activeSession);
         if (saved) {
-          setTopicsState(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTopicsState(parsed.map(normalizeTopic));
+          } else if (activeSession === '2026-27') {
+            setTopicsState(seed.map(normalizeTopic));
+          }
         } else if (activeSession === '2026-27') {
-          setTopicsState(seed);
+          setTopicsState(seed.map(normalizeTopic));
         } else {
           setTopicsState([]);
         }
@@ -1322,7 +1354,8 @@ function Filters({
 function CustomChartTooltip({ active, payload, isClass, examLabel }) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const color = data.progress >= 75 ? '#16a34a' : data.progress >= 50 ? '#1d6fd8' : data.progress >= 25 ? '#d97706' : '#dc2626';
+    const totalPct = (data.donePct || 0) + (data.inProgressPct || 0);
+    const color = totalPct >= 75 ? '#16a34a' : totalPct >= 50 ? '#1d6fd8' : totalPct >= 25 ? '#d97706' : '#dc2626';
     return (
       <div style={{
         background: '#ffffff',
@@ -1331,7 +1364,7 @@ function CustomChartTooltip({ active, payload, isClass, examLabel }) {
         padding: '10px 14px',
         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12)',
         fontSize: '12px',
-        minWidth: 175
+        minWidth: 190
       }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginBottom:4 }}>
           <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
@@ -1343,14 +1376,22 @@ function CustomChartTooltip({ active, payload, isClass, examLabel }) {
             </span>
           )}
         </div>
-        <div style={{ color, fontWeight: 800, fontSize: '16px', marginBottom: 6, display:'flex', alignItems:'center', gap:5 }}>
-          <span>{data.progress}%</span>
-          <span style={{ fontSize:'11px', fontWeight:500, color:'#64748b' }}>Complete</span>
-        </div>
-        <div style={{ display: 'grid', gap: '3px', fontSize: '11px', color: '#475569' }}>
-          <div>Completed: <b style={{ color: '#16a34a' }}>{data.done}</b> / {data.total} topics</div>
-          {data.inProgress > 0 && <div>In Progress: <b style={{ color: '#d97706' }}>{data.inProgress}</b></div>}
-          {data.pending > 0 && <div>Pending: <b style={{ color: '#dc2626' }}>{data.pending}</b></div>}
+        <div style={{ display: 'grid', gap: '4px', fontSize: '11px', color: '#475569', marginTop: 4 }}>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{width:10,height:10,borderRadius:2,background:'#16a34a',display:'inline-block',flexShrink:0}}/>
+            Done: <b style={{ color: '#16a34a' }}>{data.done}</b> <span style={{color:'#94a3b8'}}>({data.donePct || 0}%)</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{width:10,height:10,borderRadius:2,background:'#f59e0b',display:'inline-block',flexShrink:0}}/>
+            In Progress: <b style={{ color: '#d97706' }}>{data.inProgress}</b> <span style={{color:'#94a3b8'}}>({data.inProgressPct || 0}%)</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{width:10,height:10,borderRadius:2,background:'#ef4444',display:'inline-block',flexShrink:0}}/>
+            Pending: <b style={{ color: '#dc2626' }}>{data.pending}</b>
+          </div>
+          <div style={{marginTop:3,paddingTop:3,borderTop:'1px dashed #e2e8f0',fontWeight:700,color:'#0f172a'}}>
+            Total: {data.total} topics
+          </div>
         </div>
         {isClass && (
           <div style={{ marginTop: 6, paddingTop: 4, borderTop: '1px dashed #e2e8f0', fontSize: '10px', color: '#4f46e5', fontWeight: 600 }}>
@@ -1460,7 +1501,9 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
       const cInProgress=cTopics.filter(x=>x.status==='In Progress').length;
       const cPending=cTopics.filter(x=>x.status==='Not Done').length;
       const cTotal=cTopics.length;
-      const progress=cTotal?Math.round(cDone/cTotal*100):0;
+      const donePct=cTotal?Math.round(cDone/cTotal*100):0;
+      const inProgressPct=cTotal?Math.round(cInProgress/cTotal*100):0;
+      const progress=donePct;
       return {
         name:c,
         shortName:c.replace('Class ','Cl '),
@@ -1468,7 +1511,9 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
         inProgress:cInProgress,
         pending:cPending,
         total:cTotal,
-        progress
+        progress,
+        donePct,
+        inProgressPct
       };
     });
   },[availableClasses,topics,selectedSection,selectedExam]);
@@ -1482,10 +1527,16 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
       else if(x.status==='In Progress')v.inProgress++;
       else v.pending++;
       return a;
-    },{})).map(x=>({
-      ...x,
-      progress:x.total?Math.round(x.done/x.total*100):0
-    })).sort((a,b)=>a.name.localeCompare(b.name));
+    },{})).map(x=>{
+      const donePct=x.total?Math.round(x.done/x.total*100):0;
+      const inProgressPct=x.total?Math.round(x.inProgress/x.total*100):0;
+      return {
+        ...x,
+        progress:donePct,
+        donePct,
+        inProgressPct
+      };
+    }).sort((a,b)=>a.name.localeCompare(b.name));
   },[filteredTopics]);
 
   const isAllExam=selectedExam==='ALL';
@@ -1688,7 +1739,7 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
       </div>
 
       {chartData.length>0?(
-        <div style={{width:'100%',height:290,marginTop:10}}>
+        <div style={{width:'100%',height:310,marginTop:10}}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{top:15,right:20,left:-10,bottom:isAllClass?10:35}}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
@@ -1702,8 +1753,31 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
               />
               <YAxis domain={[0,100]} unit="%" tick={{fontSize:11,fill:'#4b5563'}} />
               <Tooltip content={<CustomChartTooltip isClass={isAllClass} examLabel={activeExamObj.shortLabel}/>} />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                iconType="square"
+                iconSize={10}
+                wrapperStyle={{fontSize:11,fontWeight:600,paddingBottom:4}}
+              />
               <Bar
-                dataKey="progress"
+                dataKey="donePct"
+                name="✅ Done"
+                stackId="status"
+                fill="#16a34a"
+                maxBarSize={50}
+                onClick={(entry)=>{
+                  if(isAllClass&&entry?.name){
+                    setSelectedClass(entry.name);
+                  }
+                }}
+                cursor={isAllClass?"pointer":"default"}
+              />
+              <Bar
+                dataKey="inProgressPct"
+                name="🔄 In Progress"
+                stackId="status"
+                fill="#f59e0b"
                 radius={[6,6,0,0]}
                 maxBarSize={50}
                 onClick={(entry)=>{
@@ -1712,11 +1786,7 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
                   }
                 }}
                 cursor={isAllClass?"pointer":"default"}
-              >
-                {chartData.map((entry,index)=>(
-                  <Cell key={`cell-${index}`} fill={getBarColor(entry.progress)} />
-                ))}
-              </Bar>
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -1756,10 +1826,15 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
                 <b style={{fontSize:12,color:'#1e293b'}}>{c.name}</b>
                 <strong style={{fontSize:12,color:getBarColor(c.progress)}}>{c.progress}%</strong>
               </div>
-              <div className="bar" style={{margin:'6px 0 4px',height:4}}>
-                <i style={{width:c.progress+'%',background:getBarColor(c.progress)}}/>
+              <div style={{margin:'6px 0 4px',height:6,background:'#f1f5f9',borderRadius:3,overflow:'hidden',display:'flex'}}>
+                <div style={{width:(c.donePct||0)+'%',background:'#16a34a',transition:'width 0.3s'}}/>
+                <div style={{width:(c.inProgressPct||0)+'%',background:'#f59e0b',transition:'width 0.3s'}}/>
               </div>
-              <small style={{fontSize:10,color:'#64748b',display:'block'}}>{c.done}/{c.total} topics</small>
+              <small style={{fontSize:10,color:'#64748b',display:'flex',gap:6}}>
+                <span>✅ {c.done}</span>
+                {c.inProgress > 0 && <span style={{color:'#d97706'}}>🔄 {c.inProgress}</span>}
+                <span style={{color:'#94a3b8'}}>/ {c.total}</span>
+              </small>
             </div>
           ))}
         </div>
@@ -1786,10 +1861,15 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
                 <b style={{fontSize:12,color:'#1e293b'}}>{s.name}</b>
                 <strong style={{fontSize:12,color:getBarColor(s.progress)}}>{s.progress}%</strong>
               </div>
-              <div className="bar" style={{margin:'6px 0 4px',height:4}}>
-                <i style={{width:s.progress+'%',background:getBarColor(s.progress)}}/>
+              <div style={{margin:'6px 0 4px',height:6,background:'#f1f5f9',borderRadius:3,overflow:'hidden',display:'flex'}}>
+                <div style={{width:(s.donePct||0)+'%',background:'#16a34a',transition:'width 0.3s'}}/>
+                <div style={{width:(s.inProgressPct||0)+'%',background:'#f59e0b',transition:'width 0.3s'}}/>
               </div>
-              <small style={{fontSize:10,color:'#64748b',display:'block'}}>{s.done}/{s.total} done</small>
+              <small style={{fontSize:10,color:'#64748b',display:'flex',gap:6}}>
+                <span>✅ {s.done}</span>
+                {s.inProgress > 0 && <span style={{color:'#d97706'}}>🔄 {s.inProgress}</span>}
+                <span style={{color:'#94a3b8'}}>/ {s.total}</span>
+              </small>
             </div>
           ))}
         </div>
@@ -2170,7 +2250,7 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
         if (classMap.has(cKey)) {
           classId = classMap.get(cKey);
         } else {
-          const grp = getClassGroup(row.className) === 'senior' ? 'SENIOR' : 'PRIMARY';
+          const grp = getClassGroup(row.className) === 'senior' ? 'SENIOR' : getClassGroup(row.className) === 'preprimary' ? 'PREPRIMARY' : 'PRIMARY';
           const { data: newClass } = await supabase.from('classes').insert({ class_name: row.className, class_group: grp }).select('id').single();
           if (newClass) {
             classId = newClass.id;
@@ -5993,7 +6073,7 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
     setToast(`🗑️ Removed Section ${secName} from ${cObj.name}.`);
   };
 
-  const visible = classes.filter(x => x.group === group);
+  const visible = classes.filter(x => (x.group || getClassGroup(x.name)) === group);
   const config = classGroups[group];
   const groupSecCount = visible.reduce((acc, c) => acc + (c.sections ? c.sections.length : 0), 0);
   const totalClassesCount = classes.length;
@@ -6211,8 +6291,8 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
         [pendingDeleteTopic,setPendingDeleteTopic]=useState(null);
 
   const isAllGroup = group === 'all';
-  const groupClassObjs = isAllGroup ? schoolClasses : schoolClasses.filter(x => x.group === group),
-        groupTopics = isAllGroup ? topics : topics.filter(x => (x.group || 'primary') === group),
+  const groupClassObjs = isAllGroup ? schoolClasses : schoolClasses.filter(x => (x.group || getClassGroup(x.name)) === group),
+        groupTopics = isAllGroup ? topics : topics.filter(x => getClassGroup(x.className) === group),
         availableClasses = useMemo(() => {
           const raw = groupClassObjs.length ? groupClassObjs.map(x => x.name) : groupTopics.map(x => x.className);
           return [...new Set(raw.filter(Boolean))].sort(compareClasses);
@@ -6744,10 +6824,9 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
     return topics; // Assessment tracker uses all topics
   }, [topics, type]);
 
-  // Group filter
   const isAllGroup = group === 'all';
-  const groupClassObjs = useMemo(() => isAllGroup ? schoolClasses : schoolClasses.filter(x => x.group === group), [schoolClasses, group, isAllGroup]);
-  const groupTopics = useMemo(() => isAllGroup ? relevantTopics : relevantTopics.filter(x => (x.group || 'primary') === group), [relevantTopics, group, isAllGroup]);
+  const groupClassObjs = useMemo(() => isAllGroup ? schoolClasses : schoolClasses.filter(x => (x.group || getClassGroup(x.name)) === group), [schoolClasses, group, isAllGroup]);
+  const groupTopics = useMemo(() => isAllGroup ? relevantTopics : relevantTopics.filter(x => getClassGroup(x.className) === group), [relevantTopics, group, isAllGroup]);
   
   const availableClasses = useMemo(() => {
     const raw = groupClassObjs.length ? groupClassObjs.map(x => x.name) : groupTopics.map(x => x.className);
