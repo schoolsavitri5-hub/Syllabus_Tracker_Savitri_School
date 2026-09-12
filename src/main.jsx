@@ -7021,7 +7021,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
                     <td>
                       {type === 'Practical' ? (
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 8, color: '#166534', fontWeight: 600, fontSize: 12, whiteSpace: 'pre-line' }}>
-                          🔬 {x.practical || x.topic || 'Practical Work'}
+                          🔬 {x.practical}
                         </div>
                       ) : (
                         <div style={{ maxHeight: 120, overflowY: 'auto', whiteSpace: 'pre-line' }}>{x.topic}</div>
