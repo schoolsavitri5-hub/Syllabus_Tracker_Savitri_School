@@ -6,7 +6,7 @@ create table public.sections (id uuid primary key default gen_random_uuid(), cla
 create table public.subjects (id uuid primary key default gen_random_uuid(), subject_name text not null unique, active boolean default true);
 create table public.syllabus_files (id uuid primary key default gen_random_uuid(), class_id uuid references public.classes(id), section_id uuid references public.sections(id), file_name text not null, storage_path text not null, version int not null, is_current boolean default true, uploaded_by uuid references public.profiles(id), uploaded_at timestamptz default now(), unique(class_id,section_id,version));
 create unique index one_current_file_per_section on public.syllabus_files(class_id,section_id) where is_current;
-create table public.syllabus_topics (id uuid primary key default gen_random_uuid(), class_id uuid references public.classes(id), section_id uuid references public.sections(id), subject_id uuid references public.subjects(id), month text not null, unit_chapter_en text, unit_chapter_hi text, topic_en text, topic_hi text, assessment_en text, assessment_hi text, status topic_status not null default 'Not Done', remarks text, source_file_id uuid references public.syllabus_files(id), created_at timestamptz default now(), updated_at timestamptz default now());
+create table public.syllabus_topics (id uuid primary key default gen_random_uuid(), class_id uuid references public.classes(id), section_id uuid references public.sections(id), subject_id uuid references public.subjects(id), month text not null, unit_chapter_en text, unit_chapter_hi text, topic_en text, topic_hi text, assessment_en text, assessment_hi text, practical text, status topic_status not null default 'Not Done', remarks text, source_file_id uuid references public.syllabus_files(id), created_at timestamptz default now(), updated_at timestamptz default now());
 create index topics_filter_idx on public.syllabus_topics(class_id,section_id,subject_id,month,status);
 alter table public.profiles enable row level security; alter table public.classes enable row level security; alter table public.sections enable row level security; alter table public.subjects enable row level security; alter table public.syllabus_files enable row level security; alter table public.syllabus_topics enable row level security;
 create function public.is_active_staff() returns boolean language sql stable security definer as $$select exists(select 1 from public.profiles where id=auth.uid() and active)$$;
@@ -21,7 +21,7 @@ create policy "admin manage profiles" on public.profiles for all to authenticate
 -- Create private `school-assets` and `syllabus-excels` Storage buckets, then use signed URLs for downloads.
 
 -- Validated Excel replacement: one transaction prevents partial/stale imports.
--- The caller sends [{subject, month, chapter, topic, hindi, assessment, status, remarks}].
+-- The caller sends [{subject, month, chapter, topic, hindi, assessment, practical, status, remarks}].
 create or replace function public.replace_syllabus_import(import_rows jsonb)
 returns void language plpgsql security definer set search_path = public as $$
 declare r jsonb; sid uuid;
@@ -37,7 +37,7 @@ begin
   delete from syllabus_topics;
   for r in select value from jsonb_array_elements(import_rows) loop
     insert into subjects(subject_name) values (trim(r->>'subject')) on conflict (subject_name) do update set subject_name=excluded.subject_name returning id into sid;
-    insert into syllabus_topics(subject_id,month,unit_chapter_en,unit_chapter_hi,topic_en,assessment_en,status,remarks)
-    values(sid,trim(r->>'month'),trim(r->>'chapter'),nullif(r->>'hindi',''),nullif(r->>'topic',''),nullif(r->>'assessment',''),(r->>'status')::topic_status,nullif(r->>'remarks',''));
+    insert into syllabus_topics(subject_id,month,unit_chapter_en,unit_chapter_hi,topic_en,assessment_en,practical,status,remarks)
+    values(sid,trim(r->>'month'),trim(r->>'chapter'),nullif(r->>'hindi',''),nullif(r->>'topic',''),nullif(r->>'assessment',''),nullif(r->>'practical',''),(r->>'status')::topic_status,nullif(r->>'remarks',''));
   end loop;
 end $$;

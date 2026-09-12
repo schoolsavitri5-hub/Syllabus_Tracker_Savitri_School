@@ -356,15 +356,8 @@ function normalizeTopic(row){
   const className=row.classes?.class_name??row.className??'Class 1';
   const section=row.sections?.section_name??row.section??'A';
   const group=getClassGroup(className);
-  let practical = row.practical ?? '';
-  let remarks = row.remarks ?? '';
-  if (!practical && remarks && remarks.includes('[Practical:')) {
-    const match = remarks.match(/\[Practical:\s*(.*?)\]/);
-    if (match) {
-      practical = match[1];
-      remarks = remarks.replace(/\[Practical:\s*.*?\]/, '').trim();
-    }
-  }
+  const practical = row.practical ?? '';
+  const remarks = row.remarks ?? '';
   return {
     ...row,
     id:row.id,
@@ -573,14 +566,6 @@ async function saveTopic(topic){
       subjectId=created.data.id
     }else subjectId=q.data.id
   }
-  let remarksText = topic.remarks || '';
-  if (topic.practical && topic.practical.trim()) {
-    const pText = `[Practical: ${topic.practical.trim()}]`;
-    const cleanRemarks = remarksText.replace(/\[Practical:\s*.*?\]/g, '').trim();
-    remarksText = cleanRemarks ? `${pText} ${cleanRemarks}` : pText;
-  } else {
-    remarksText = remarksText.replace(/\[Practical:\s*.*?\]/g, '').trim();
-  }
   const payload={
     month:topic.month,
     unit_chapter_en:topic.chapter,
@@ -588,7 +573,8 @@ async function saveTopic(topic){
     topic_en:topic.topic||null,
     assessment_en:topic.assessment||null,
     status:topic.status,
-    remarks:remarksText||null,
+    practical: topic.practical?.trim() || null,
+    remarks:topic.remarks||null,
     subject_id:subjectId
   };
   if(topic.id){
@@ -861,7 +847,7 @@ function Shell({user,setUser}){
         ...t,
         id: `s_${newId}_${i + 1}`,
         status: 'Not Done',
-        remarks: t.remarks && t.remarks.includes('[Practical:') ? t.remarks.match(/\[Practical:\s*.*?\]/)?.[0] || null : null
+        remarks: null
       }));
     }
     localStorage.setItem('syllabus_topics_' + newId, JSON.stringify(newTopics));
@@ -2240,6 +2226,7 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
     const sRes = await supabase.from('subjects').select('id, subject_name');
     const classMap = new Map((cRes.data || []).map(c => [c.class_name.toLowerCase().trim(), c.id]));
     const subjectMap = new Map((sRes.data || []).map(s => [s.subject_name.toLowerCase().trim(), s.id]));
+    const replacedScopes = new Set();
 
     for (const row of rows) {
       let subjectId = null;
@@ -2272,6 +2259,55 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
         }
       }
 
+      // Excel is the source of truth for the uploaded class/section/subject.
+      // Clear a subject once before inserting its uploaded rows, so stale practical
+      // entries cannot appear in the Practical tab or A4 reports.
+      const scopeKey = `${classId || ''}:${subjectId || ''}:${row.section || ''}`;
+      if (classId && subjectId && !replacedScopes.has(scopeKey)) {
+        let sectionId = null;
+        const sectionName = (row.section || 'A').trim();
+        const sectionRes = await supabase
+          .from('sections')
+          .select('id')
+          .eq('class_id', classId)
+          .eq('section_name', sectionName)
+          .maybeSingle();
+        if (sectionRes.data?.id) {
+          sectionId = sectionRes.data.id;
+        } else {
+          const { data: newSection, error: sectionError } = await supabase
+            .from('sections')
+            .insert({ class_id: classId, section_name: sectionName })
+            .select('id')
+            .single();
+          if (sectionError) throw sectionError;
+          sectionId = newSection?.id || null;
+        }
+
+        let deleteQuery = supabase
+          .from('syllabus_topics')
+          .delete()
+          .eq('class_id', classId)
+          .eq('subject_id', subjectId);
+        // Legacy Class 9-A records were saved without section_id, so include those
+        // only while replacing Section A. Properly mapped other sections stay safe.
+        if (sectionId) {
+          deleteQuery = sectionName === 'A'
+            ? deleteQuery.or(`section_id.eq.${sectionId},section_id.is.null`)
+            : deleteQuery.eq('section_id', sectionId);
+        }
+        const { error: deleteError } = await deleteQuery;
+        if (deleteError) throw deleteError;
+        replacedScopes.add(scopeKey);
+      }
+
+      let sectionId = null;
+      if (classId) {
+        const sectionName = (row.section || 'A').trim();
+        const sectionRes = await supabase.from('sections').select('id').eq('class_id', classId).eq('section_name', sectionName).maybeSingle();
+        sectionId = sectionRes.data?.id || null;
+      }
+
       const payload = {
         month: row.month || 'Apr - July',
         unit_chapter_en: row.chapter || '',
@@ -2279,65 +2315,39 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
         topic_en: row.topic || '',
         assessment_en: row.assessment || null,
         status: statusValues.includes(row.status) ? row.status : 'Not Done',
+        practical: row.practical?.trim() || null,
         remarks: row.remarks || null
       };
       if (classId) payload.class_id = classId;
       if (subjectId) payload.subject_id = subjectId;
+      if (sectionId) payload.section_id = sectionId;
 
-      const isUUID = typeof row.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(row.id);
-      if (isUUID) {
-        const { error: upErr } = await supabase.from('syllabus_topics').update(payload).eq('id', row.id);
-        if (!upErr) updatedCount++;
-      } else {
-        let matchQuery = supabase.from('syllabus_topics').select('id');
-        if (classId) matchQuery = matchQuery.eq('class_id', classId);
-        if (subjectId) matchQuery = matchQuery.eq('subject_id', subjectId);
-        if (row.month) matchQuery = matchQuery.eq('month', row.month);
-        if (row.chapter) matchQuery = matchQuery.eq('unit_chapter_en', row.chapter);
-        
-        const matchRes = await matchQuery.maybeSingle();
-        if (matchRes.data?.id) {
-          await supabase.from('syllabus_topics').update(payload).eq('id', matchRes.data.id);
-          updatedCount++;
-        } else {
-          await supabase.from('syllabus_topics').insert(payload);
-          createdCount++;
-        }
-      }
+      const { error: insertError } = await supabase.from('syllabus_topics').insert(payload);
+      if (insertError) throw insertError;
+      createdCount++;
     }
     await reload();
   } else {
     setTopics(prev => {
-      const copy = [...prev];
+      const importedScopes = new Set(rows.map(r => `${(r.className || '').toLowerCase()}::${(r.section || 'A').toLowerCase()}::${(r.subject || '').toLowerCase()}`));
+      const copy = prev.filter(t => !importedScopes.has(`${(t.className || '').toLowerCase()}::${(t.section || 'A').toLowerCase()}::${(t.subject || '').toLowerCase()}`));
       rows.forEach(r => {
-        const isUUID = typeof r.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.id);
-        const idx = copy.findIndex(t => 
-          (isUUID && t.id === r.id) || 
-          ((t.className || '').toLowerCase() === (r.className || '').toLowerCase() && 
-           (t.subject || '').toLowerCase() === (r.subject || '').toLowerCase() && 
-           (t.month || '').toLowerCase() === (r.month || '').toLowerCase() && 
-           (t.chapter || '').toLowerCase() === (r.chapter || '').toLowerCase())
-        );
-        if (idx !== -1) {
-          copy[idx] = { ...copy[idx], ...r, status: statusValues.includes(r.status) ? r.status : copy[idx].status };
-          updatedCount++;
-        } else {
-          copy.push({
-            id: r.id || `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            className: r.className || 'Class 1',
-            section: r.section || 'A',
-            group: getClassGroup(r.className || 'Class 1'),
-            subject: r.subject || 'General',
-            month: r.month || 'Apr - July',
-            chapter: r.chapter || '',
-            hindi: r.hindi || '',
-            topic: r.topic || '',
-            assessment: r.assessment || 'PA 1',
-            status: statusValues.includes(r.status) ? r.status : 'Not Done',
-            remarks: r.remarks || ''
-          });
-          createdCount++;
-        }
+        copy.push({
+          id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          className: r.className || 'Class 1',
+          section: r.section || 'A',
+          group: getClassGroup(r.className || 'Class 1'),
+          subject: r.subject || 'General',
+          month: r.month || 'Apr - July',
+          chapter: r.chapter || '',
+          hindi: r.hindi || '',
+          topic: r.topic || '',
+          practical: r.practical || '',
+          assessment: r.assessment || 'PA 1',
+          status: statusValues.includes(r.status) ? r.status : 'Not Done',
+          remarks: r.remarks || ''
+        });
+        createdCount++;
       });
       return copy;
     });
@@ -2671,15 +2681,6 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
           }
         }
 
-        let remarksText = formData.remarks || '';
-        if (formData.practical && formData.practical.trim()) {
-          const pText = `[Practical: ${formData.practical.trim()}]`;
-          const cleanRemarks = remarksText.replace(/\[Practical:\s*.*?\]/g, '').trim();
-          remarksText = cleanRemarks ? `${pText} ${cleanRemarks}` : pText;
-        } else {
-          remarksText = remarksText.replace(/\[Practical:\s*.*?\]/g, '').trim();
-        }
-
         const payload = {
           month: formData.month,
           unit_chapter_en: formData.chapter,
@@ -2687,7 +2688,8 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
           topic_en: formData.topic || null,
           assessment_en: formData.assessment || null,
           status: formData.status,
-          remarks: remarksText || null,
+          practical: formData.practical?.trim() || null,
+          remarks: formData.remarks || null,
           ...(subjectId ? { subject_id: subjectId } : {}),
           ...(classId ? { class_id: classId } : {})
         };
@@ -2945,15 +2947,6 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
           }
         }
 
-        let remarksText = formData.remarks || '';
-        if (formData.practical && formData.practical.trim()) {
-          const pText = `[Practical: ${formData.practical.trim()}]`;
-          const cleanRemarks = remarksText.replace(/\[Practical:\s*.*?\]/g, '').trim();
-          remarksText = cleanRemarks ? `${pText} ${cleanRemarks}` : pText;
-        } else {
-          remarksText = remarksText.replace(/\[Practical:\s*.*?\]/g, '').trim();
-        }
-
         const payload = {
           month: formData.month,
           unit_chapter_en: formData.chapter,
@@ -2961,7 +2954,8 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
           topic_en: formData.topic || null,
           assessment_en: formData.assessment || null,
           status: formData.status,
-          remarks: remarksText || null,
+          practical: formData.practical?.trim() || null,
+          remarks: formData.remarks || null,
           ...(subjectId ? { subject_id: subjectId } : {}),
           ...(classId ? { class_id: classId } : {})
         };
@@ -3431,6 +3425,17 @@ function PrincipalChecklistModal({ data, filters, close }) {
             <div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div>
           </td>
         </tr>
+        ${x.practical ? `
+        <tr style="background:#f0fdf4;">
+          <td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td>
+          <td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
+          <td style="font-size:10px;font-weight:700;">${escapeHtml(x.subject || '')}</td>
+          <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
+          <td style="font-size:11px;"><div style="font-weight:800;color:#166534;margin-bottom:3px;">🧪 Practical</div><div style="white-space:pre-line;line-height:1.35;color:#14532d;">${escapeHtml(x.practical)}</div></td>
+          <td style="text-align:center;"><span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">${escapeHtml(x.status || 'Not Done')}</span></td>
+          <td style="text-align:center;vertical-align:middle;"><div style="width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;margin:0 auto;"></div></td>
+          <td style="vertical-align:bottom;padding-bottom:6px;"><div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div></td>
+        </tr>` : ''}
       `;
     }).join('');
 
@@ -3998,7 +4003,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
       const sectionText = x.section ? `<span style="display:inline-block;margin-left:4px;padding:1px 5px;background:#dbeafe;color:#1e40af;border-radius:3px;font-size:9px;font-weight:700;">Sec ${escapeHtml(x.section)}</span>` : '';
       const assessmentText = x.assessment ? `<span style="display:inline-block;padding:2px 6px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:4px;font-size:9px;font-weight:700;">${escapeHtml(x.assessment)}</span>` : '';
       const hindiText = x.hindi ? `<div style="font-size:10px;color:#475569;font-weight:500;margin-top:2px;">( ${escapeHtml(x.hindi)} )</div>` : '';
-      const practicalTag = (x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) ? `<span style="display:inline-block;margin-top:4px;padding:1px 6px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:3px;font-size:9px;font-weight:700;">🧪 Practical Topic</span>` : '';
+      const practicalTag = '';
 
       return `
         <tr>
@@ -4018,6 +4023,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
             <span style="font-size:8px;color:#64748b;">Prepared</span>
           </td>
         </tr>
+        ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#14532d;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
       `;
     }).join('');
 
@@ -4536,11 +4542,6 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
                         <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
                         {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
                         <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3, marginTop: 2 }}>{x.topic}</div>
-                        {(x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) && (
-                          <span style={{ display: 'inline-block', marginTop: 3, padding: '1px 6px', background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: 3, fontSize: 9, fontWeight: 700 }}>
-                            🧪 Practical Topic
-                          </span>
-                        )}
                       </td>
                       <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
@@ -4623,7 +4624,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
       const sectionText = x.section ? `<span style="display:inline-block;margin-left:4px;padding:1px 5px;background:#dbeafe;color:#1e40af;border-radius:3px;font-size:9px;font-weight:700;">Sec ${escapeHtml(x.section)}</span>` : '';
       const assessmentText = x.assessment ? `<span style="display:inline-block;padding:2px 6px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:4px;font-size:9px;font-weight:700;">${escapeHtml(x.assessment)}</span>` : '';
       const hindiText = x.hindi ? `<div style="font-size:10px;color:#475569;font-weight:500;margin-top:2px;">( ${escapeHtml(x.hindi)} )</div>` : '';
-      const practicalTag = (x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) ? `<span style="display:inline-block;margin-top:4px;padding:1px 6px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:3px;font-size:9px;font-weight:700;">🧪 Practical Topic</span>` : '';
+      const practicalTag = '';
 
       return `
         <tr>
@@ -4644,6 +4645,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
             <span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span>
           </td>
         </tr>
+        ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#14532d;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
       `;
     }).join('');
 
@@ -5150,11 +5152,6 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
                         <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
                         {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
                         <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.35, marginTop: 3 }}>{x.topic}</div>
-                        {(x.remarks && x.remarks.includes('[Practical:') || (x.topic && x.topic.toLowerCase().includes('practical'))) && (
-                          <span style={{ display: 'inline-block', marginTop: 4, padding: '1px 6px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 3, fontSize: 9, fontWeight: 700 }}>
-                            🧪 Practical Topic
-                          </span>
-                        )}
                       </td>
                       <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
@@ -6811,16 +6808,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
 
   // Filter topics specifically for Practicals vs Assessments
   const relevantTopics = useMemo(() => {
-    if (type === 'Practical') {
-      return topics.filter(x => {
-        const hasPracticalText = Boolean(x.practical && x.practical.trim().length > 0);
-        const hasPracticalInTopic = Boolean(x.topic && x.topic.toLowerCase().includes('practical'));
-        const hasPracticalInAssessment = Boolean(x.assessment && x.assessment.toLowerCase().includes('practical'));
-        const hasPracticalInChapter = Boolean(x.chapter && x.chapter.toLowerCase().includes('practical'));
-        const isLabSubject = ['Science', 'Computer', 'Biology', 'Physics', 'Chemistry', 'E.V.S', 'Activity', 'A.R.T', 'Lab Work'].includes(x.subject);
-        return hasPracticalText || hasPracticalInTopic || hasPracticalInAssessment || hasPracticalInChapter || (isLabSubject && Boolean(x.practical));
-      });
-    }
+    if (type === 'Practical') return topics.filter(x => Boolean(x.practical && x.practical.trim()));
     return topics; // Assessment tracker uses all topics
   }, [topics, type]);
 
