@@ -3955,44 +3955,130 @@ function PrincipalChecklistModal({ data, filters, close }) {
                     const statusColor = isDone ? '#19743c' : isInProgress ? '#986900' : '#b32e35';
 
                     return (
-                      <tr key={x.id || idx}>
-                        <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
-                        <td style={{ fontSize: 11, fontWeight: 700 }}>
-                          {x.className}
-                          {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
-                        </td>
-                        <td style={{ fontSize: 11, fontWeight: 700 }}>{x.subject}</td>
-                        <td style={{ fontSize: 10 }}>
-                          {x.month}
-                          {x.assessment && <div style={{ fontSize: 9, color: '#64748b' }}>{x.assessment}</div>}
-                        </td>
-                        <td style={{ fontSize: 11 }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
-                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.topic}</div>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '3px 6px',
-                              borderRadius: 4,
-                              fontSize: 9,
-                              fontWeight: 800,
-                              background: statusBg,
-                              color: statusColor,
-                              border: `1px solid ${statusColor}44`
-                            }}
-                          >
-                            {x.status}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                          <div style={{ width: 16, height: 16, border: '1.5px solid #475569', borderRadius: 3, margin: '0 auto' }} />
-                        </td>
-                        <td style={{ verticalAlign: 'bottom', paddingBottom: 4 }}>
-                          <div style={{ borderBottom: '1px dotted #94a3b8', minHeight: 18 }} />
-                        </td>
-                      </tr>
+                      <React.Fragment key={x.id || idx}>
+                        <tr>
+                          <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
+                          <td style={{ fontSize: 11, fontWeight: 700 }}>
+                            {x.className}
+                            {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                          </td>
+                          <td style={{ fontSize: 11, fontWeight: 700 }}>{x.subject}</td>
+                          <td style={{ fontSize: 10 }}>
+                            {x.month}
+                            {x.assessment && <div style={{ fontSize: 9, color: '#64748b' }}>{x.assessment}</div>}
+                          </td>
+                          <td style={{ fontSize: 11 }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
+                            <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.topic}</div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '3px 6px',
+                                borderRadius: 4,
+                                fontSize: 9,
+                                fontWeight: 800,
+                                background: statusBg,
+                                color: statusColor,
+                                border: `1px solid ${statusColor}44`
+                              }}
+                            >
+                              {x.status}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ width: 16, height: 16, border: '1.5px solid #475569', borderRadius: 3, margin: '0 auto' }} />
+                          </td>
+                          <td style={{ verticalAlign: 'bottom', paddingBottom: 4 }}>
+                            <div style={{ borderBottom: '1px dotted #94a3b8', minHeight: 18 }} />
+                          </td>
+                        </tr>
+                        {x.practical && (
+                          <tr style={{ background: '#f0fdf4' }}>
+                            <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10, color: '#166534' }}>{idx + 1}P</td>
+                            <td style={{ fontSize: 10, fontWeight: 700 }}>
+                              {x.className}
+                              {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                            </td>
+                            <td style={{ fontSize: 10, fontWeight: 700 }}>{x.subject}</td>
+                            <td style={{ fontSize: 10 }}>
+                              {x.month}
+                              {x.assessment && <div style={{ fontSize: 9, color: '#64748b' }}>{x.assessment}</div>}
+                            </td>
+                            <td style={{ fontSize: 11 }}>
+                              <div style={{ fontWeight: 800, color: '#166534', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                🧪 Practical / Lab Work
+                              </div>
+                              <div style={{ fontSize: 10, color: '#14532d', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.practical}</div>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '3px 6px',
+                                  borderRadius: 4,
+                                  fontSize: 9,
+                                  fontWeight: 800,
+                                  background: statusBg,
+                                  color: statusColor,
+                                  border: `1px solid ${statusColor}44`
+                                }}
+                              >
+                                {x.status}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ width: 16, height: 16, border: '1.5px solid #475569', borderRadius: 3, margin: '0 auto' }} />
+                            </td>
+                            <td style={{ verticalAlign: 'bottom', paddingBottom: 4 }}>
+                              <div style={{ borderBottom: '1px dotted #94a3b8', minHeight: 18 }} />
+                            </td>
+                          </tr>
+                        )}
+                        {x.project && (
+                          <tr style={{ background: '#f8fafc' }}>
+                            <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10, color: '#1e40af' }}>{idx + 1}Prj</td>
+                            <td style={{ fontSize: 10, fontWeight: 700 }}>
+                              {x.className}
+                              {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                            </td>
+                            <td style={{ fontSize: 10, fontWeight: 700 }}>{x.subject}</td>
+                            <td style={{ fontSize: 10 }}>
+                              {x.month}
+                              {x.assessment && <div style={{ fontSize: 9, color: '#64748b' }}>{x.assessment}</div>}
+                            </td>
+                            <td style={{ fontSize: 11 }}>
+                              <div style={{ fontWeight: 800, color: '#1e40af', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                📁 Project Work
+                              </div>
+                              <div style={{ fontSize: 10, color: '#1e293b', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.project}</div>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '3px 6px',
+                                  borderRadius: 4,
+                                  fontSize: 9,
+                                  fontWeight: 800,
+                                  background: statusBg,
+                                  color: statusColor,
+                                  border: `1px solid ${statusColor}44`
+                                }}
+                              >
+                                {x.status}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ width: 16, height: 16, border: '1.5px solid #475569', borderRadius: 3, margin: '0 auto' }} />
+                            </td>
+                            <td style={{ verticalAlign: 'bottom', paddingBottom: 4 }}>
+                              <div style={{ borderBottom: '1px dotted #94a3b8', minHeight: 18 }} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -4582,31 +4668,85 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
                 </thead>
                 <tbody>
                   {data.map((x, idx) => (
-                    <tr key={x.id || idx}>
-                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
-                      <td style={{ fontSize: 11, fontWeight: 700 }}>
-                        {x.className}
-                        {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
-                      </td>
-                      <td style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
-                      <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
-                      <td style={{ fontSize: 9, textAlign: 'center' }}>
-                        {x.assessment ? (
-                          <span style={{ display: 'inline-block', padding: '1px 5px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 3, fontWeight: 700 }}>
-                            {x.assessment}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td style={{ fontSize: 11 }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
-                        {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
-                        <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3, marginTop: 2 }}>{x.topic}</div>
-                      </td>
-                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                        <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
-                        <span style={{ fontSize: 8, color: '#64748b' }}>Done</span>
-                      </td>
-                    </tr>
+                    <React.Fragment key={x.id || idx}>
+                      <tr>
+                        <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
+                        <td style={{ fontSize: 11, fontWeight: 700 }}>
+                          {x.className}
+                          {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                        </td>
+                        <td style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                        <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                        <td style={{ fontSize: 9, textAlign: 'center' }}>
+                          {x.assessment ? (
+                            <span style={{ display: 'inline-block', padding: '1px 5px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 3, fontWeight: 700 }}>
+                              {x.assessment}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td style={{ fontSize: 11 }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
+                          {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
+                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3, marginTop: 2 }}>{x.topic}</div>
+                        </td>
+                        <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                          <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
+                          <span style={{ fontSize: 8, color: '#64748b' }}>Done</span>
+                        </td>
+                      </tr>
+                      {x.practical && (
+                        <tr style={{ background: '#f0fdf4' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10, color: '#166534' }}>{idx + 1}P</td>
+                          <td style={{ fontSize: 10, fontWeight: 700 }}>
+                            {x.className}
+                            {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                          </td>
+                          <td style={{ fontSize: 10, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                          <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                          <td style={{ fontSize: 9, textAlign: 'center' }}>
+                            <span style={{ display: 'inline-block', padding: '1px 5px', background: '#dcfce7', border: '1px solid #86efac', color: '#166534', borderRadius: 3, fontWeight: 700 }}>
+                              Practical
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#14532d' }}>
+                            <div style={{ fontWeight: 800, marginBottom: 2, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              🧪 Practical / Lab Work
+                            </div>
+                            {x.practical}
+                          </td>
+                          <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
+                            <span style={{ fontSize: 8, color: '#64748b' }}>Done</span>
+                          </td>
+                        </tr>
+                      )}
+                      {x.project && (
+                        <tr style={{ background: '#f8fafc' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10, color: '#1e40af' }}>{idx + 1}Prj</td>
+                          <td style={{ fontSize: 10, fontWeight: 700 }}>
+                            {x.className}
+                            {x.section && <div style={{ fontSize: 9, color: '#2563eb' }}>Sec {x.section}</div>}
+                          </td>
+                          <td style={{ fontSize: 10, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                          <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                          <td style={{ fontSize: 9, textAlign: 'center' }}>
+                            <span style={{ display: 'inline-block', padding: '1px 5px', background: '#e0e7ff', border: '1px solid #c7d2fe', color: '#3730a3', borderRadius: 3, fontWeight: 700 }}>
+                              Project
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#1e293b' }}>
+                            <div style={{ fontWeight: 800, color: '#1e40af', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              📁 Project Work
+                            </div>
+                            {x.project}
+                          </td>
+                          <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
+                            <span style={{ fontSize: 8, color: '#64748b' }}>Done</span>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -5193,32 +5333,88 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
                 </thead>
                 <tbody>
                   {data.map((x, idx) => (
-                    <tr key={x.id || idx}>
-                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
-                      <td style={{ fontSize: 11, fontWeight: 700 }}>
-                        {x.className}
-                        {x.section && <div style={{ fontSize: 9, color: '#059669' }}>Sec {x.section}</div>}
-                      </td>
-                      <td style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
-                      <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
-                      <td style={{ fontSize: 9, textAlign: 'center' }}>
-                        {x.assessment ? (
-                          <span style={{ display: 'inline-block', padding: '1px 5px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 3, fontWeight: 700 }}>
-                            {x.assessment}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td style={{ fontSize: 11 }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
-                        {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
-                        <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.35, marginTop: 3 }}>{x.topic}</div>
-                      </td>
-                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                        <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
-                        <div style={{ borderBottom: '1px solid #94a3b8', width: '80%', margin: '3px auto 2px', height: 8 }} />
-                        <span style={{ fontSize: 8, color: '#059669', fontWeight: 700 }}>Sign</span>
-                      </td>
-                    </tr>
+                    <React.Fragment key={x.id || idx}>
+                      <tr>
+                        <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10 }}>{idx + 1}</td>
+                        <td style={{ fontSize: 11, fontWeight: 700 }}>
+                          {x.className}
+                          {x.section && <div style={{ fontSize: 9, color: '#059669' }}>Sec {x.section}</div>}
+                        </td>
+                        <td style={{ fontSize: 11, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                        <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                        <td style={{ fontSize: 9, textAlign: 'center' }}>
+                          {x.assessment ? (
+                            <span style={{ display: 'inline-block', padding: '1px 5px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 3, fontWeight: 700 }}>
+                              {x.assessment}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td style={{ fontSize: 11 }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
+                          {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
+                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.35, marginTop: 3 }}>{x.topic}</div>
+                        </td>
+                        <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                          <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
+                          <div style={{ borderBottom: '1px solid #94a3b8', width: '80%', margin: '3px auto 2px', height: 8 }} />
+                          <span style={{ fontSize: 8, color: '#059669', fontWeight: 700 }}>Sign</span>
+                        </td>
+                      </tr>
+                      {x.practical && (
+                        <tr style={{ background: '#f0fdf4' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10, color: '#166534' }}>{idx + 1}P</td>
+                          <td style={{ fontSize: 10, fontWeight: 700 }}>
+                            {x.className}
+                            {x.section && <div style={{ fontSize: 9, color: '#059669' }}>Sec {x.section}</div>}
+                          </td>
+                          <td style={{ fontSize: 10, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                          <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                          <td style={{ fontSize: 9, textAlign: 'center' }}>
+                            <span style={{ display: 'inline-block', padding: '1px 5px', background: '#dcfce7', border: '1px solid #86efac', color: '#166534', borderRadius: 3, fontWeight: 700 }}>
+                              Practical
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#14532d' }}>
+                            <div style={{ fontWeight: 800, marginBottom: 2, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              🧪 Practical / Lab Work
+                            </div>
+                            {x.practical}
+                          </td>
+                          <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
+                            <div style={{ borderBottom: '1px solid #94a3b8', width: '80%', margin: '3px auto 2px', height: 8 }} />
+                            <span style={{ fontSize: 8, color: '#059669', fontWeight: 700 }}>Sign</span>
+                          </td>
+                        </tr>
+                      )}
+                      {x.project && (
+                        <tr style={{ background: '#f8fafc' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 10, color: '#1e40af' }}>{idx + 1}Prj</td>
+                          <td style={{ fontSize: 10, fontWeight: 700 }}>
+                            {x.className}
+                            {x.section && <div style={{ fontSize: 9, color: '#059669' }}>Sec {x.section}</div>}
+                          </td>
+                          <td style={{ fontSize: 10, fontWeight: 700, color: '#0b4388' }}>{x.subject}</td>
+                          <td style={{ fontSize: 10, fontWeight: 600 }}>{x.month}</td>
+                          <td style={{ fontSize: 9, textAlign: 'center' }}>
+                            <span style={{ display: 'inline-block', padding: '1px 5px', background: '#e0e7ff', border: '1px solid #c7d2fe', color: '#3730a3', borderRadius: 3, fontWeight: 700 }}>
+                              Project
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#1e293b' }}>
+                            <div style={{ fontWeight: 800, color: '#1e40af', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              📁 Project Work
+                            </div>
+                            {x.project}
+                          </td>
+                          <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
+                            <div style={{ borderBottom: '1px solid #94a3b8', width: '80%', margin: '3px auto 2px', height: 8 }} />
+                            <span style={{ fontSize: 8, color: '#059669', fontWeight: 700 }}>Sign</span>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -6913,12 +7109,10 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
     return [...new Set(sectionTopics.map(x => x.subject).filter(Boolean))].sort();
   }, [sectionTopics]);
 
-  const hasSubjectSelected = Boolean(subjectName);
-  const isAllSubject = subjectName === 'ALL';
+  const isAllSubject = !subjectName || subjectName === 'ALL';
   const subjectTopics = useMemo(() => {
-    if (!hasSubjectSelected) return [];
     return isAllSubject ? sectionTopics : sectionTopics.filter(x => x.subject === subjectName);
-  }, [hasSubjectSelected, isAllSubject, sectionTopics, subjectName]);
+  }, [isAllSubject, sectionTopics, subjectName]);
 
   const data = useMemo(() => {
     const filtered = subjectTopics.filter(x => {
@@ -6955,6 +7149,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
   const doneCount = useMemo(() => data.filter(x => x.status === 'Done').length, [data]);
   const inProgressCount = useMemo(() => data.filter(x => x.status === 'In Progress').length, [data]);
   const progressPct = data.length ? Math.round((doneCount / data.length) * 100) : 0;
+  const [pendingDeleteTopic, setPendingDeleteTopic] = useState(null);
 
   const chooseGroup = g => {
     setGroup(g);
@@ -6974,9 +7169,33 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
     }
   };
 
+  const remove = async x => {
+    try {
+      const id = String(x.id || '');
+      const isServerRecord = supabase && id &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+      if (isServerRecord) {
+        let { error } = await supabase.from('syllabus_topics').delete().eq('id', x.id);
+        if (error) throw error;
+      }
+      setTopics(prev => prev.filter(t => t.id !== x.id));
+      await reload();
+      setToast('🗑️ Record deleted successfully.');
+    } catch(e) {
+      console.error(e);
+      setToast('⚠️ ' + (e.message || 'Failed to delete record.'));
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    exportSyllabusToExcel(data, { group, className: isAllClass ? 'ALL' : className, subjectName: isAllSubject ? 'ALL' : subjectName, exam: 'ALL' });
+    setToast(`📥 Exported ${data.length} ${type.toLowerCase()} records to Excel successfully.`);
+  };
+
   return (
     <>
-      <div className="page-head">
+      <div className="page-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <span className="eyebrow">ACADEMIC SESSION {currentSession ? currentSession.replace('-', '–') : '2026–27'} · {type === 'Practical' ? 'LABORATORY & ACTIVITY WORK' : type === 'Project' ? 'PROJECT & ASSIGNMENT WORK' : 'ACADEMIC EVALUATION'}</span>
           <h1>{type} Tracker</h1>
@@ -6987,6 +7206,11 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
               ? 'Live map of student projects, models & assignments entered in the syllabus tracker'
               : 'Monitor subject-wise assessment completion and status across all terms'}
           </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="secondary" type="button" onClick={handleDownloadExcel} style={{ display: 'inline-flex', gap: 7, alignItems: 'center', fontWeight: 700 }}>
+            <Icons.Download size={16} color="#1d4ed8" /> Download {type} Excel ({data.length})
+          </button>
         </div>
       </div>
 
@@ -7006,19 +7230,19 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
         </button>
 
         <select value={className} onChange={e => { setClassName(e.target.value); setSectionName(''); setSubjectName(''); }} aria-label="Filter by class">
-          <option value="">Select Class</option>
+          <option value="">All Classes</option>
           <option value="ALL">🏫 All Classes (Nursery to 12th)</option>
           {availableClasses.map(x => <option key={x} value={x}>{x}</option>)}
         </select>
 
         <select value={sectionName} onChange={e => { setSectionName(e.target.value); setSubjectName(''); }} aria-label="Filter by section">
-          <option value="">Select Section</option>
+          <option value="">All Sections</option>
           <option value="ALL">All Sections</option>
           {availableSections.map(x => <option key={x} value={x}>Section {x}</option>)}
         </select>
 
         <select value={subjectName} onChange={e => setSubjectName(e.target.value)} aria-label="Filter by subject">
-          <option value="">Select Subject</option>
+          <option value="">All Subjects</option>
           <option value="ALL">All Subjects</option>
           {availableSubjects.map(x => <option key={x} value={x}>{x}</option>)}
         </select>
@@ -7111,25 +7335,46 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
                       </select>
                     </td>
                     <td>
-                      <button
-                        className="icon-btn"
-                        onClick={() => setEditingTopic(x)}
-                        title={`Edit ${type.toLowerCase()}/syllabus record`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 32,
-                          height: 32,
-                          borderRadius: 6,
-                          background: '#eff6ff',
-                          color: '#1d4ed8',
-                          border: '1px solid #bfdbfe',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Icons.Pencil size={15} />
-                      </button>
+                      <div className="action-buttons" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button
+                          className="icon-btn"
+                          onClick={() => setEditingTopic(x)}
+                          title={`Edit ${type.toLowerCase()} / syllabus record`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 32,
+                            height: 32,
+                            borderRadius: 6,
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Icons.Pencil size={15} />
+                        </button>
+                        <button
+                          className="icon-btn danger"
+                          onClick={() => setPendingDeleteTopic(x)}
+                          title="Delete record"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 32,
+                            height: 32,
+                            borderRadius: 6,
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Icons.Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -7148,6 +7393,16 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
           reload={reload}
           setTopics={setTopics}
           onSuccess={msg => setToast(msg)}
+        />
+      )}
+
+      {pendingDeleteTopic && (
+        <PasswordDeleteModal
+          title={`Delete ${type} Record`}
+          itemDescription={`${type} item for "${pendingDeleteTopic.chapter || pendingDeleteTopic.subject}" (${pendingDeleteTopic.className || ''}${pendingDeleteTopic.section ? ' · Sec ' + pendingDeleteTopic.section : ''})`}
+          user={user}
+          close={() => setPendingDeleteTopic(null)}
+          onConfirm={() => remove(pendingDeleteTopic)}
         />
       )}
     </>
