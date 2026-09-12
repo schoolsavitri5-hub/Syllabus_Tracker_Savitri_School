@@ -2858,19 +2858,47 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
 
           <label className="full-label">
             Practical Work / Lab Experiments (Optional)
-            <input
+            <textarea
+              rows={4}
               value={formData.practical}
               onChange={e => setFormData({ ...formData, practical: e.target.value })}
-              placeholder="e.g. Lab experiment 1, Viva topics, Practical record work"
+              placeholder="Enter practical work, lab experiments, step-by-step activities (press Enter for new lines)..."
+              style={{
+                width: '100%',
+                border: '1.5px solid #16a34a',
+                borderRadius: 7,
+                padding: '10px 12px',
+                font: 'inherit',
+                fontSize: 12,
+                outlineColor: '#16a34a',
+                background: '#f0fdf4',
+                resize: 'vertical',
+                lineHeight: 1.4,
+                whiteSpace: 'pre-wrap'
+              }}
             />
           </label>
 
           <label className="full-label">
             Project Work / Student Assignments (Optional)
-            <input
+            <textarea
+              rows={4}
               value={formData.project}
               onChange={e => setFormData({ ...formData, project: e.target.value })}
-              placeholder="e.g. Science project model, Scrapbook, Presentation topic"
+              placeholder="Enter student projects, models, assignment topics (press Enter for new lines)..."
+              style={{
+                width: '100%',
+                border: '1.5px solid #2563eb',
+                borderRadius: 7,
+                padding: '10px 12px',
+                font: 'inherit',
+                fontSize: 12,
+                outlineColor: '#2563eb',
+                background: '#eff6ff',
+                resize: 'vertical',
+                lineHeight: 1.4,
+                whiteSpace: 'pre-wrap'
+              }}
             />
           </label>
 
@@ -3132,29 +3160,34 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
 
           <label className="full-label">
             Practical Work / Lab Experiments (Optional)
-            <input
+            <textarea
+              rows={4}
               value={formData.practical}
               onChange={e => setFormData({ ...formData, practical: e.target.value })}
-              placeholder="e.g. Lab experiment 1, Viva topics, Practical record work"
+              placeholder="Enter practical work, lab experiments, step-by-step activities (press Enter for new lines)..."
               style={{
                 width: '100%',
-                border: '1.5px solid #2563eb',
+                border: '1.5px solid #16a34a',
                 borderRadius: 7,
                 padding: '10px 12px',
                 font: 'inherit',
                 fontSize: 12,
-                outlineColor: '#2563eb',
-                background: '#f8fafc'
+                outlineColor: '#16a34a',
+                background: '#f0fdf4',
+                resize: 'vertical',
+                lineHeight: 1.4,
+                whiteSpace: 'pre-wrap'
               }}
             />
           </label>
 
           <label className="full-label">
             Project Work / Student Assignments (Optional)
-            <input
+            <textarea
+              rows={4}
               value={formData.project}
               onChange={e => setFormData({ ...formData, project: e.target.value })}
-              placeholder="e.g. Science project model, Scrapbook, Presentation topic"
+              placeholder="Enter student projects, models, assignment topics (press Enter for new lines)..."
               style={{
                 width: '100%',
                 border: '1.5px solid #2563eb',
@@ -3163,7 +3196,10 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
                 font: 'inherit',
                 fontSize: 12,
                 outlineColor: '#2563eb',
-                background: '#f8fafc'
+                background: '#eff6ff',
+                resize: 'vertical',
+                lineHeight: 1.4,
+                whiteSpace: 'pre-wrap'
               }}
             />
           </label>
@@ -3458,7 +3494,7 @@ function PrincipalChecklistModal({ data, filters, close }) {
           <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
           <td style="font-size:11px;">
             <div style="font-weight:700;color:#0f172a;margin-bottom:3px;">${escapeHtml(x.chapter || '')}</div>
-            <div style="font-size:10px;color:#334155;white-space:pre-line;line-height:1.35;">${escapeHtml(x.topic || '')}</div>
+            <div style="font-size:10px;color:#334155;white-space:pre-wrap;line-height:1.45;word-break:break-word;">${escapeHtml(x.topic || '')}</div>
           </td>
           <td style="text-align:center;">
             <span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">
@@ -3474,22 +3510,22 @@ function PrincipalChecklistModal({ data, filters, close }) {
         </tr>
         ${x.practical ? `
         <tr style="background:#f0fdf4;">
-          <td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td>
+          <td style="text-align:center;font-weight:700;font-size:10px;color:#166534;">${idx + 1}P</td>
           <td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
           <td style="font-size:10px;font-weight:700;">${escapeHtml(x.subject || '')}</td>
           <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
-          <td style="font-size:11px;"><div style="font-weight:800;color:#166534;margin-bottom:3px;">🧪 Practical</div><div style="white-space:pre-line;line-height:1.35;color:#14532d;">${escapeHtml(x.practical)}</div></td>
+          <td style="font-size:11px;"><div style="font-weight:800;color:#166534;margin-bottom:3px;">🧪 Practical / Lab Work</div><div style="white-space:pre-wrap;line-height:1.45;color:#14532d;word-break:break-word;">${escapeHtml(x.practical)}</div></td>
           <td style="text-align:center;"><span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">${escapeHtml(x.status || 'Not Done')}</span></td>
           <td style="text-align:center;vertical-align:middle;"><div style="width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;margin:0 auto;"></div></td>
           <td style="vertical-align:bottom;padding-bottom:6px;"><div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div></td>
         </tr>` : ''}
         ${x.project ? `
         <tr style="background:#f8fafc;">
-          <td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td>
+          <td style="text-align:center;font-weight:700;font-size:10px;color:#1e40af;">${idx + 1}Prj</td>
           <td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
           <td style="font-size:10px;font-weight:700;">${escapeHtml(x.subject || '')}</td>
           <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
-          <td style="font-size:11px;"><div style="font-weight:800;color:#1e40af;margin-bottom:3px;">📁 Project Work</div><div style="white-space:pre-line;line-height:1.35;color:#1e293b;">${escapeHtml(x.project)}</div></td>
+          <td style="font-size:11px;"><div style="font-weight:800;color:#1e40af;margin-bottom:3px;">📁 Project Work</div><div style="white-space:pre-wrap;line-height:1.45;color:#1e293b;word-break:break-word;">${escapeHtml(x.project)}</div></td>
           <td style="text-align:center;"><span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">${escapeHtml(x.status || 'Not Done')}</span></td>
           <td style="text-align:center;vertical-align:middle;"><div style="width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;margin:0 auto;"></div></td>
           <td style="vertical-align:bottom;padding-bottom:6px;"><div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div></td>
@@ -3969,7 +4005,7 @@ function PrincipalChecklistModal({ data, filters, close }) {
                           </td>
                           <td style={{ fontSize: 11 }}>
                             <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
-                            <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.topic}</div>
+                            <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.45, wordBreak: 'break-word' }}>{x.topic}</div>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <span
@@ -4010,7 +4046,7 @@ function PrincipalChecklistModal({ data, filters, close }) {
                               <div style={{ fontWeight: 800, color: '#166534', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 🧪 Practical / Lab Work
                               </div>
-                              <div style={{ fontSize: 10, color: '#14532d', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.practical}</div>
+                              <div style={{ fontSize: 10, color: '#14532d', whiteSpace: 'pre-wrap', lineHeight: 1.45, wordBreak: 'break-word' }}>{x.practical}</div>
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               <span
@@ -4052,7 +4088,7 @@ function PrincipalChecklistModal({ data, filters, close }) {
                               <div style={{ fontWeight: 800, color: '#1e40af', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 📁 Project Work
                               </div>
-                              <div style={{ fontSize: 10, color: '#1e293b', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{x.project}</div>
+                              <div style={{ fontSize: 10, color: '#1e293b', whiteSpace: 'pre-wrap', lineHeight: 1.45, wordBreak: 'break-word' }}>{x.project}</div>
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               <span
@@ -4159,7 +4195,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
           <td style="font-size:11px;">
             <div style="font-weight:700;color:#0f172a;margin-bottom:2px;font-size:11.5px;">${escapeHtml(x.chapter || '')}</div>
             ${hindiText}
-            <div style="font-size:10px;color:#334155;white-space:pre-line;line-height:1.35;margin-top:3px;">${escapeHtml(x.topic || '')}</div>
+            <div style="font-size:10px;color:#334155;white-space:pre-wrap;line-height:1.45;margin-top:3px;word-break:break-word;">${escapeHtml(x.topic || '')}</div>
             ${practicalTag}
           </td>
           <td style="text-align:center;vertical-align:middle;">
@@ -4167,8 +4203,8 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
             <span style="font-size:8px;color:#64748b;">Prepared</span>
           </td>
         </tr>
-        ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#14532d;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
-        ${x.project ? `<tr style="background:#f8fafc;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:4px;font-size:9px;font-weight:800;">Project</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#1e293b;"><div style="font-weight:800;color:#1e40af;margin-bottom:2px;">📁 Project Work</div>${escapeHtml(x.project)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
+        ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;color:#166534;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-wrap;line-height:1.45;color:#14532d;word-break:break-word;"><div style="font-weight:800;margin-bottom:2px;color:#166534;">🧪 Practical / Lab Work</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
+        ${x.project ? `<tr style="background:#f8fafc;"><td style="text-align:center;font-weight:700;font-size:10px;color:#1e40af;">${idx + 1}Prj</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:4px;font-size:9px;font-weight:800;">Project</span></td><td style="font-size:10px;white-space:pre-wrap;line-height:1.45;color:#1e293b;word-break:break-word;"><div style="font-weight:800;color:#1e40af;margin-bottom:2px;">📁 Project Work</div>${escapeHtml(x.project)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
       `;
     }).join('');
 
@@ -4687,7 +4723,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
                         <td style={{ fontSize: 11 }}>
                           <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
                           {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
-                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.3, marginTop: 2 }}>{x.topic}</div>
+                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.4, marginTop: 2, wordBreak: 'break-word' }}>{x.topic}</div>
                         </td>
                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                           <div style={{ width: 16, height: 16, border: '1.5px solid #64748b', borderRadius: 3, margin: '0 auto 2px' }} />
@@ -4708,7 +4744,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
                               Practical
                             </span>
                           </td>
-                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#14532d' }}>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-wrap', lineHeight: 1.4, color: '#14532d', wordBreak: 'break-word' }}>
                             <div style={{ fontWeight: 800, marginBottom: 2, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>
                               🧪 Practical / Lab Work
                             </div>
@@ -4734,7 +4770,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
                               Project
                             </span>
                           </td>
-                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#1e293b' }}>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-wrap', lineHeight: 1.4, color: '#1e293b', wordBreak: 'break-word' }}>
                             <div style={{ fontWeight: 800, color: '#1e40af', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                               📁 Project Work
                             </div>
@@ -4835,7 +4871,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
           <td style="font-size:11px;">
             <div style="font-weight:700;color:#0f172a;margin-bottom:2px;font-size:11.5px;">${escapeHtml(x.chapter || '')}</div>
             ${hindiText}
-            <div style="font-size:10px;color:#334155;white-space:pre-line;line-height:1.35;margin-top:3px;">${escapeHtml(x.topic || '')}</div>
+            <div style="font-size:10px;color:#334155;white-space:pre-wrap;line-height:1.4;margin-top:3px;word-break:break-word;">${escapeHtml(x.topic || '')}</div>
             ${practicalTag}
           </td>
           <td style="text-align:center;vertical-align:middle;">
@@ -4844,8 +4880,8 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
             <span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span>
           </td>
         </tr>
-        ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#14532d;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
-        ${x.project ? `<tr style="background:#f8fafc;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:4px;font-size:9px;font-weight:800;">Project</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#1e293b;"><div style="font-weight:800;color:#1e40af;margin-bottom:2px;">📁 Project Work</div>${escapeHtml(x.project)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
+        ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-wrap;line-height:1.4;color:#14532d;word-break:break-word;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
+        ${x.project ? `<tr style="background:#f8fafc;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:4px;font-size:9px;font-weight:800;">Project</span></td><td style="font-size:10px;white-space:pre-wrap;line-height:1.4;color:#1e293b;word-break:break-word;"><div style="font-weight:800;color:#1e40af;margin-bottom:2px;">📁 Project Work</div>${escapeHtml(x.project)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
       `;
     }).join('');
 
@@ -5352,7 +5388,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
                         <td style={{ fontSize: 11 }}>
                           <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{x.chapter}</div>
                           {x.hindi && <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>( {x.hindi} )</div>}
-                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.35, marginTop: 3 }}>{x.topic}</div>
+                          <div style={{ fontSize: 10, color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.4, marginTop: 3, wordBreak: 'break-word' }}>{x.topic}</div>
                         </td>
                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                           <div style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1.1 }}>Target:</div>
@@ -5374,7 +5410,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
                               Practical
                             </span>
                           </td>
-                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#14532d' }}>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-wrap', lineHeight: 1.4, color: '#14532d', wordBreak: 'break-word' }}>
                             <div style={{ fontWeight: 800, marginBottom: 2, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>
                               🧪 Practical / Lab Work
                             </div>
@@ -5401,7 +5437,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
                               Project
                             </span>
                           </td>
-                          <td style={{ fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.35, color: '#1e293b' }}>
+                          <td style={{ fontSize: 10, whiteSpace: 'pre-wrap', lineHeight: 1.4, color: '#1e293b', wordBreak: 'break-word' }}>
                             <div style={{ fontWeight: 800, color: '#1e40af', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                               📁 Project Work
                             </div>
@@ -6894,15 +6930,17 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
                     <td><b>{x.subject}</b></td>
                     <td>{x.chapter}</td>
                     <td>
-                      <div style={{maxHeight:120,overflowY:'auto',whiteSpace:'pre-line'}}>{x.topic}</div>
+                      <div style={{ maxHeight: 150, overflowY: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.4, wordBreak: 'break-word' }}>{x.topic}</div>
                       {x.practical && (
-                        <div style={{ marginTop: 6, background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 8px', borderRadius: 6, color: '#166534', fontSize: 11, fontWeight: 600, display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-                          🔬 <span><b>Practical:</b> {x.practical}</span>
+                        <div style={{ marginTop: 6, background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 10px', borderRadius: 6, color: '#166534', fontSize: 11, fontWeight: 500, whiteSpace: 'pre-wrap', lineHeight: 1.4, wordBreak: 'break-word', display: 'block' }}>
+                          <div style={{ fontWeight: 800, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>🔬 Practical / Lab Work:</div>
+                          <div>{x.practical}</div>
                         </div>
                       )}
                       {x.project && (
-                        <div style={{ marginTop: 6, background: '#eff6ff', border: '1px solid #bfdbfe', padding: '4px 8px', borderRadius: 6, color: '#1e40af', fontSize: 11, fontWeight: 600, display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-                          📁 <span><b>Project:</b> {x.project}</span>
+                        <div style={{ marginTop: 6, background: '#eff6ff', border: '1px solid #bfdbfe', padding: '6px 10px', borderRadius: 6, color: '#1e40af', fontSize: 11, fontWeight: 500, whiteSpace: 'pre-wrap', lineHeight: 1.4, wordBreak: 'break-word', display: 'block' }}>
+                          <div style={{ fontWeight: 800, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>📁 Project Work:</div>
+                          <div>{x.project}</div>
                         </div>
                       )}
                     </td>
@@ -7314,15 +7352,17 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
                     <td>{x.chapter}</td>
                     <td>
                       {type === 'Practical' ? (
-                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 8, color: '#166534', fontWeight: 600, fontSize: 12, whiteSpace: 'pre-line' }}>
-                          🔬 {x.practical}
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 8, color: '#166534', fontWeight: 500, fontSize: 12, whiteSpace: 'pre-wrap', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                          <b style={{ display: 'block', marginBottom: 3, color: '#14532d' }}>🔬 Practical / Lab Work:</b>
+                          {x.practical}
                         </div>
                       ) : type === 'Project' ? (
-                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 12px', borderRadius: 8, color: '#1e40af', fontWeight: 600, fontSize: 12, whiteSpace: 'pre-line' }}>
-                          📁 {x.project}
+                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 12px', borderRadius: 8, color: '#1e40af', fontWeight: 500, fontSize: 12, whiteSpace: 'pre-wrap', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                          <b style={{ display: 'block', marginBottom: 3, color: '#1e3a8a' }}>📁 Project Work:</b>
+                          {x.project}
                         </div>
                       ) : (
-                        <div style={{ maxHeight: 120, overflowY: 'auto', whiteSpace: 'pre-line' }}>{x.topic}</div>
+                        <div style={{ maxHeight: 150, overflowY: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.4, wordBreak: 'break-word' }}>{x.topic}</div>
                       )}
                     </td>
                     <td>
