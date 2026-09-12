@@ -275,7 +275,7 @@ function getMonthSortIndex(m) {
   return fi !== -1 ? fi : 999;
 }
 function examTopics(topics, group, exam) { return topics.filter(x => matchesExam(x, exam)); }
-const nav=[['/dashboard','Dashboard','LayoutDashboard'],['/classes','Class & Section','School'],['/syllabus','Syllabus Progress','ChartNoAxesCombined'],['/practicals','Practicals','FlaskConical'],['/users','User Management','Users','admin'],['/settings','School Settings','Settings'],['/profile','Profile','CircleUser']];
+const nav=[['/dashboard','Dashboard','LayoutDashboard'],['/classes','Class & Section','School'],['/syllabus','Syllabus Progress','ChartNoAxesCombined'],['/practicals','Practicals','FlaskConical'],['/projects','Projects','FolderOpen'],['/users','User Management','Users','admin'],['/settings','School Settings','Settings'],['/profile','Profile','CircleUser']];
 function Logo({size, style, src}){
   const [logoSrc, setLogoSrc] = useState(() => {
     if (src) return src;
@@ -357,6 +357,7 @@ function normalizeTopic(row){
   const section=row.sections?.section_name??row.section??'A';
   const group=getClassGroup(className);
   const practical = row.practical ?? '';
+  const project = row.project ?? '';
   const remarks = row.remarks ?? '';
   return {
     ...row,
@@ -372,7 +373,8 @@ function normalizeTopic(row){
     assessment:row.assessment_en??row.assessment??'',
     status:row.status??'Not Done',
     remarks,
-    practical
+    practical,
+    project
   };
 }
 const DEFAULT_ACADEMIC_SESSIONS = [
@@ -574,6 +576,7 @@ async function saveTopic(topic){
     assessment_en:topic.assessment||null,
     status:topic.status,
     practical: topic.practical?.trim() || null,
+    project: topic.project?.trim() || null,
     remarks:topic.remarks||null,
     subject_id:subjectId
   };
@@ -593,13 +596,14 @@ const PERMISSION_MODULES = [
   { id: 'syllabus_edit', name: 'Syllabus (Add / Edit)', desc: 'Add new topics, edit chapter titles, update status, add practical rows', icon: 'Pencil' },
   { id: 'syllabus_delete', name: 'Syllabus (Delete)', desc: 'Delete chapters, topics, or imported syllabus rows', icon: 'Trash2' },
   { id: 'practicals', name: 'Practicals Management', desc: 'Manage practical exams, records, and student assessment', icon: 'FlaskConical' },
+  { id: 'projects', name: 'Projects Management', desc: 'Manage student projects, assignments, and submissions', icon: 'FolderOpen' },
   { id: 'users_manage', name: 'User Management', desc: 'Create, edit, manage access permissions, and remove users', icon: 'Users' },
   { id: 'settings', name: 'School Settings', desc: 'Edit school profile, manager name, address, and branding', icon: 'Settings' },
   { id: 'export_print', name: 'Print & Export', desc: 'Print Principal checklists, download PDF reports, and export CSV', icon: 'Printer' },
 ];
 
 const ALL_PERMISSIONS_KEYS = PERMISSION_MODULES.map(p => p.id);
-const DEFAULT_OPERATOR_PERMS = ['dashboard', 'syllabus_view', 'syllabus_edit', 'practicals', 'export_print'];
+const DEFAULT_OPERATOR_PERMS = ['dashboard', 'syllabus_view', 'syllabus_edit', 'practicals', 'projects', 'export_print'];
 const READ_ONLY_PERMS = ['dashboard', 'syllabus_view', 'export_print'];
 
 const DEFAULT_USERS_LIST = [
@@ -628,7 +632,7 @@ const DEFAULT_USERS_LIST = [
     role: 'COMPUTER_OPERATOR',
     active: true,
     created_at: '2026-09-05T09:15:00Z',
-    permissions: ['dashboard', 'classes', 'syllabus_view', 'syllabus_edit', 'practicals', 'export_print']
+    permissions: ['dashboard', 'classes', 'syllabus_view', 'syllabus_edit', 'practicals', 'projects', 'export_print']
   },
   {
     id: 'u4',
@@ -637,7 +641,7 @@ const DEFAULT_USERS_LIST = [
     role: 'COMPUTER_OPERATOR',
     active: true,
     created_at: '2026-09-05T09:30:00Z',
-    permissions: ['dashboard', 'syllabus_view', 'syllabus_edit', 'practicals', 'export_print']
+    permissions: ['dashboard', 'syllabus_view', 'syllabus_edit', 'practicals', 'projects', 'export_print']
   },
   {
     id: 'u5',
@@ -646,7 +650,7 @@ const DEFAULT_USERS_LIST = [
     role: 'COMPUTER_OPERATOR',
     active: false,
     created_at: '2026-09-06T14:20:00Z',
-    permissions: ['dashboard', 'syllabus_view', 'practicals', 'export_print']
+    permissions: ['dashboard', 'syllabus_view', 'practicals', 'projects', 'export_print']
   }
 ];
 
@@ -792,6 +796,7 @@ const navPermissionsMap = {
   '/classes': 'classes',
   '/syllabus': 'syllabus_view',
   '/practicals': 'practicals',
+  '/projects': 'projects',
   '/users': 'users_manage',
   '/settings': 'settings',
   '/profile': 'profile'
@@ -1053,6 +1058,7 @@ function Shell({user,setUser}){
             <Route path="/syllabus" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
             <Route path="/syllabus/:subject" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
             <Route path="/practicals" element={hasUserPermission(user,'practicals') ? <Tracker type="Practical" schoolClasses={schoolClasses} user={user} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
+            <Route path="/projects" element={hasUserPermission(user,'projects') ? <Tracker type="Project" schoolClasses={schoolClasses} user={user} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
             <Route path="/users" element={hasUserPermission(user,'users_manage') ? <Users user={user}/> : <Navigate to="/dashboard"/>} />
             <Route
               path="/settings"
@@ -1971,6 +1977,7 @@ function exportSyllabusToExcel(data, { group, className, subjectName, exam } = {
     'Hindi Title': x.hindi || '',
     'Detailed Syllabus / Topic': x.topic || '',
     'Practical / Lab Work': x.practical || '',
+    'Project Work': x.project || '',
     'Status': x.status || 'Not Done',
     'Remarks': x.remarks || ''
   }));
@@ -1989,13 +1996,14 @@ function exportSyllabusToExcel(data, { group, className, subjectName, exam } = {
     { wch: 25 }, // Hindi Title
     { wch: 48 }, // Detailed Syllabus / Topic
     { wch: 34 }, // Practical / Lab Work
+    { wch: 34 }, // Project Work
     { wch: 14 }, // Status
     { wch: 22 }  // Remarks
   ];
 
   // Auto-filter for easy filtering and printing in Excel
   if (exportRows.length > 0) {
-    worksheet['!autofilter'] = { ref: `A1:L${exportRows.length + 1}` };
+    worksheet['!autofilter'] = { ref: `A1:M${exportRows.length + 1}` };
   }
 
   const workbook = XLSX.utils.book_new();
@@ -2032,6 +2040,7 @@ async function downloadSampleExcelTemplate() {
     { title: 'Hindi Title', required: false, key: 'hindi', width: 26 }, // No asterisk on Hindi Title as requested
     { title: 'Detailed Syllabus / Topic', required: true, key: 'topic', width: 55 },
     { title: 'Practical / Lab Work', required: true, key: 'practical', width: 38 }, // Red * on Practical column
+    { title: 'Project Work', required: false, key: 'project', width: 38 },
     { title: 'Status', required: true, key: 'status', width: 16 },
     { title: 'Remarks', required: true, key: 'remarks', width: 25 }
   ];
@@ -2088,6 +2097,7 @@ async function downloadSampleExcelTemplate() {
     hindi: 'एक खुशहाल बच्चा',
     topic: 'Reading, poem recitation, rhyming words, new vocabulary words',
     practical: 'Activity 1: Draw and colour a happy face & family tree',
+    project: 'Project 1: Scrapbook on Family Members & Helpers',
     status: 'Done',
     remarks: 'Completed in July week 2'
   });
@@ -2192,6 +2202,7 @@ async function downloadSampleExcelTemplate() {
     { col: 'Hindi Title', req: 'Optional', vals: 'पाठ १: शीर्षक', desc: 'Hindi translation / Hindi chapter title.' },
     { col: 'Detailed Syllabus / Topic', req: 'Yes', vals: 'Complete curriculum points / topics', desc: 'Detailed syllabus topic and learning points.' },
     { col: 'Practical / Lab Work', req: 'Yes', vals: 'Experiments, practicals, activities, lab demo', desc: 'Laboratory experiment, science practical, or class activity.' },
+    { col: 'Project Work', req: 'Optional', vals: 'Projects, models, chart work, assignments', desc: 'Student project work, model making, or assignment topic.' },
     { col: 'Status', req: 'Yes (Dropdown)', vals: 'Done, In Progress, Not Done', desc: 'Current teaching progress (Select from Dropdown).' },
     { col: 'Remarks', req: 'Optional', vals: 'Teacher or Admin notes', desc: 'Any remarks or notes.' }
   ];
@@ -2316,6 +2327,7 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
         assessment_en: row.assessment || null,
         status: statusValues.includes(row.status) ? row.status : 'Not Done',
         practical: row.practical?.trim() || null,
+        project: row.project?.trim() || null,
         remarks: row.remarks || null
       };
       if (classId) payload.class_id = classId;
@@ -2343,6 +2355,7 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
           hindi: r.hindi || '',
           topic: r.topic || '',
           practical: r.practical || '',
+          project: r.project || '',
           assessment: r.assessment || 'PA 1',
           status: statusValues.includes(r.status) ? r.status : 'Not Done',
           remarks: r.remarks || ''
@@ -2398,6 +2411,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess })
           const hindi = getVal(['hindi', 'hindi title', 'hindi_title', 'unit_chapter_hi', 'विषय हिन्दी', 'hindi topic']);
           const topic = getVal(['detailed syllabus / topic', 'detailed syllabus', 'syllabus', 'topic', 'topic_en', 'topic english', 'learning objectives']);
           const practical = getVal(['practical', 'practical / lab work', 'practical/lab work', 'lab work', 'practicals', 'experiment', 'lab experiment', 'activity']);
+          const project = getVal(['project', 'project work', 'projects', 'assignment', 'project/assignment', 'project / assignment']);
           let status = getVal(['status']);
           const remarks = getVal(['remarks', 'remark', 'notes']);
 
@@ -2420,6 +2434,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess })
               hindi,
               topic: topic || chapter,
               practical,
+              project,
               status,
               remarks
             });
@@ -2638,6 +2653,7 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
     hindi: '',
     topic: '',
     practical: '',
+    project: '',
     status: 'Not Done',
     remarks: ''
   });
@@ -2689,6 +2705,7 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
           assessment_en: formData.assessment || null,
           status: formData.status,
           practical: formData.practical?.trim() || null,
+          project: formData.project?.trim() || null,
           remarks: formData.remarks || null,
           ...(subjectId ? { subject_id: subjectId } : {}),
           ...(classId ? { class_id: classId } : {})
@@ -2848,6 +2865,15 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
             />
           </label>
 
+          <label className="full-label">
+            Project Work / Student Assignments (Optional)
+            <input
+              value={formData.project}
+              onChange={e => setFormData({ ...formData, project: e.target.value })}
+              placeholder="e.g. Science project model, Scrapbook, Presentation topic"
+            />
+          </label>
+
           <label>
             Status *
             <select
@@ -2894,6 +2920,7 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
     hindi: topic.hindi || '',
     topic: topic.topic || '',
     practical: topic.practical || '',
+    project: topic.project || '',
     status: topic.status || 'Not Done',
     remarks: topic.remarks || ''
   });
@@ -2955,6 +2982,7 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
           assessment_en: formData.assessment || null,
           status: formData.status,
           practical: formData.practical?.trim() || null,
+          project: formData.project?.trim() || null,
           remarks: formData.remarks || null,
           ...(subjectId ? { subject_id: subjectId } : {}),
           ...(classId ? { class_id: classId } : {})
@@ -3108,6 +3136,25 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
               value={formData.practical}
               onChange={e => setFormData({ ...formData, practical: e.target.value })}
               placeholder="e.g. Lab experiment 1, Viva topics, Practical record work"
+              style={{
+                width: '100%',
+                border: '1.5px solid #2563eb',
+                borderRadius: 7,
+                padding: '10px 12px',
+                font: 'inherit',
+                fontSize: 12,
+                outlineColor: '#2563eb',
+                background: '#f8fafc'
+              }}
+            />
+          </label>
+
+          <label className="full-label">
+            Project Work / Student Assignments (Optional)
+            <input
+              value={formData.project}
+              onChange={e => setFormData({ ...formData, project: e.target.value })}
+              placeholder="e.g. Science project model, Scrapbook, Presentation topic"
               style={{
                 width: '100%',
                 border: '1.5px solid #2563eb',
@@ -3432,6 +3479,17 @@ function PrincipalChecklistModal({ data, filters, close }) {
           <td style="font-size:10px;font-weight:700;">${escapeHtml(x.subject || '')}</td>
           <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
           <td style="font-size:11px;"><div style="font-weight:800;color:#166534;margin-bottom:3px;">🧪 Practical</div><div style="white-space:pre-line;line-height:1.35;color:#14532d;">${escapeHtml(x.practical)}</div></td>
+          <td style="text-align:center;"><span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">${escapeHtml(x.status || 'Not Done')}</span></td>
+          <td style="text-align:center;vertical-align:middle;"><div style="width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;margin:0 auto;"></div></td>
+          <td style="vertical-align:bottom;padding-bottom:6px;"><div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div></td>
+        </tr>` : ''}
+        ${x.project ? `
+        <tr style="background:#f8fafc;">
+          <td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td>
+          <td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td>
+          <td style="font-size:10px;font-weight:700;">${escapeHtml(x.subject || '')}</td>
+          <td style="font-size:10px;">${escapeHtml(x.month || '')}${assessmentText}</td>
+          <td style="font-size:11px;"><div style="font-weight:800;color:#1e40af;margin-bottom:3px;">📁 Project Work</div><div style="white-space:pre-line;line-height:1.35;color:#1e293b;">${escapeHtml(x.project)}</div></td>
           <td style="text-align:center;"><span style="display:inline-block;padding:3px 7px;border-radius:4px;font-size:9.5px;font-weight:800;background:${statusBg};color:${statusColor};border:1px solid ${statusColor}55;">${escapeHtml(x.status || 'Not Done')}</span></td>
           <td style="text-align:center;vertical-align:middle;"><div style="width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;margin:0 auto;"></div></td>
           <td style="vertical-align:bottom;padding-bottom:6px;"><div style="border-bottom:1px dotted #94a3b8;min-height:18px;"></div></td>
@@ -4024,6 +4082,7 @@ function StudentSyllabusModal({ data, filters, currentSession = '2026-27', close
           </td>
         </tr>
         ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#14532d;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
+        ${x.project ? `<tr style="background:#f8fafc;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:4px;font-size:9px;font-weight:800;">Project</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#1e293b;"><div style="font-weight:800;color:#1e40af;margin-bottom:2px;">📁 Project Work</div>${escapeHtml(x.project)}</td><td style="text-align:center;vertical-align:middle;"><div style="width:18px;height:18px;border:1.5px solid #64748b;border-radius:4px;margin:0 auto 3px;"></div><span style="font-size:8px;color:#64748b;">Prepared</span></td></tr>` : ''}
       `;
     }).join('');
 
@@ -4646,6 +4705,7 @@ function SoftBoardSyllabusModal({ data, filters, currentSession = '2026-27', clo
           </td>
         </tr>
         ${x.practical ? `<tr style="background:#f0fdf4;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}P</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;font-size:9px;font-weight:800;">Practical</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#14532d;"><div style="font-weight:800;margin-bottom:2px;">🧪 Practical</div>${escapeHtml(x.practical)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
+        ${x.project ? `<tr style="background:#f8fafc;"><td style="text-align:center;font-weight:700;font-size:10px;">${idx + 1}Prj</td><td style="font-size:10px;font-weight:700;">${escapeHtml(x.className || '')}${sectionText}</td><td style="font-size:10px;font-weight:700;color:#0b4388;">${escapeHtml(x.subject || '')}</td><td style="font-size:10px;font-weight:600;">${escapeHtml(x.month || '')}</td><td style="font-size:10px;text-align:center;"><span style="display:inline-block;padding:2px 6px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:4px;font-size:9px;font-weight:800;">Project</span></td><td style="font-size:10px;white-space:pre-line;line-height:1.35;color:#1e293b;"><div style="font-weight:800;color:#1e40af;margin-bottom:2px;">📁 Project Work</div>${escapeHtml(x.project)}</td><td style="text-align:center;vertical-align:middle;"><div style="font-size:8.5px;color:#64748b;line-height:1.2;">Target Date:</div><div style="border-bottom:1px solid #94a3b8;width:80%;margin:4px auto 2px;height:10px;"></div><span style="font-size:8px;color:#059669;font-weight:700;">Faculty Sign</span></td></tr>` : ''}
       `;
     }).join('');
 
@@ -6644,6 +6704,11 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
                           🔬 <span><b>Practical:</b> {x.practical}</span>
                         </div>
                       )}
+                      {x.project && (
+                        <div style={{ marginTop: 6, background: '#eff6ff', border: '1px solid #bfdbfe', padding: '4px 8px', borderRadius: 6, color: '#1e40af', fontSize: 11, fontWeight: 600, display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+                          📁 <span><b>Project:</b> {x.project}</span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <select
@@ -6806,9 +6871,10 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
   const [toast, setToast] = useState('');
   const [editingTopic, setEditingTopic] = useState(null);
 
-  // Filter topics specifically for Practicals vs Assessments
+  // Filter topics specifically for Practicals vs Projects vs Assessments
   const relevantTopics = useMemo(() => {
     if (type === 'Practical') return topics.filter(x => Boolean(x.practical && x.practical.trim()));
+    if (type === 'Project') return topics.filter(x => Boolean(x.project && x.project.trim()));
     return topics; // Assessment tracker uses all topics
   }, [topics, type]);
 
@@ -6856,7 +6922,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
 
   const data = useMemo(() => {
     const filtered = subjectTopics.filter(x => {
-      const searchStr = `${x.chapter} ${x.subject} ${x.topic} ${x.month} ${x.className} ${x.section || ''} ${x.practical || ''}`.toLowerCase();
+      const searchStr = `${x.chapter} ${x.subject} ${x.topic} ${x.month} ${x.className} ${x.section || ''} ${x.practical || ''} ${x.project || ''}`.toLowerCase();
       return searchStr.includes(q.toLowerCase());
     });
 
@@ -6912,11 +6978,13 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">ACADEMIC SESSION {currentSession ? currentSession.replace('-', '–') : '2026–27'} · {type === 'Practical' ? 'LABORATORY & ACTIVITY WORK' : 'ACADEMIC EVALUATION'}</span>
+          <span className="eyebrow">ACADEMIC SESSION {currentSession ? currentSession.replace('-', '–') : '2026–27'} · {type === 'Practical' ? 'LABORATORY & ACTIVITY WORK' : type === 'Project' ? 'PROJECT & ASSIGNMENT WORK' : 'ACADEMIC EVALUATION'}</span>
           <h1>{type} Tracker</h1>
           <p>
             {type === 'Practical'
               ? 'Live map of practicals, experiments & lab activities entered in the syllabus tracker'
+              : type === 'Project'
+              ? 'Live map of student projects, models & assignments entered in the syllabus tracker'
               : 'Monitor subject-wise assessment completion and status across all terms'}
           </p>
         </div>
@@ -6960,7 +7028,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
 
       {/* Stats compact grid */}
       <div className="stats compact" style={{ marginBottom: 18 }}>
-        <div className="stat"><div><small>TOTAL {type.toUpperCase()}S</small><strong>{data.length}</strong></div><i><Icons.FlaskConical /></i></div>
+        <div className="stat"><div><small>TOTAL {type.toUpperCase()}S</small><strong>{data.length}</strong></div><i>{type === 'Practical' ? <Icons.FlaskConical /> : type === 'Project' ? <Icons.FolderOpen /> : <Icons.BookOpen />}</i></div>
         <div className="stat"><div><small>DONE</small><strong>{doneCount}</strong></div><i><Icons.CircleCheck /></i></div>
         <div className="stat"><div><small>IN PROGRESS</small><strong>{inProgressCount}</strong></div><i><Icons.Clock3 /></i></div>
         <div className="stat"><div><small>PROGRESS</small><strong>{progressPct}%</strong></div><i><Icons.ChartNoAxesCombined /></i></div>
@@ -6970,7 +7038,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
       <div className="filters" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
         <div className="search" style={{ flex: 1, maxWidth: 450 }}>
           <Icons.Search />
-          <input placeholder={`Search ${type.toLowerCase()} subject, class, topic, or practical entry...`} onChange={e => setQ(e.target.value)} />
+          <input placeholder={`Search ${type.toLowerCase()} subject, class, topic, or ${type === 'Practical' ? 'practical' : type === 'Project' ? 'project' : 'assessment'} entry...`} onChange={e => setQ(e.target.value)} />
         </div>
         <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
           Showing <b>{data.length}</b> live {type.toLowerCase()} records
@@ -6980,21 +7048,23 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
       {/* Table Card */}
       <section className="card">
         <CardTitle
-          title={type === 'Practical' ? 'Mapped Practical & Laboratory Records' : 'Current Assessment Status'}
+          title={type === 'Practical' ? 'Mapped Practical & Laboratory Records' : type === 'Project' ? 'Mapped Project & Assignment Records' : 'Current Assessment Status'}
           subtitle={loading ? 'Loading database…' : `${data.length} matching live records`}
         />
         <div className="table-wrap">
           {data.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 24px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: 12, margin: '12px 0' }}>
               <div style={{ width: 56, height: 56, background: '#eff6ff', color: '#1d4ed8', borderRadius: '50%', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
-                <Icons.FlaskConical size={28} />
+                {type === 'Practical' ? <Icons.FlaskConical size={28} /> : type === 'Project' ? <Icons.FolderOpen size={28} /> : <Icons.BookOpen size={28} />}
               </div>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', margin: '0 0 6px' }}>
-                {type === 'Practical' ? 'कोई प्रैक्टिकल रिकॉर्ड उपलब्ध नहीं है' : 'कोई असेसमेंट रिकॉर्ड उपलब्ध नहीं है'}
+                {type === 'Practical' ? 'कोई प्रैक्टिकल रिकॉर्ड उपलब्ध नहीं है' : type === 'Project' ? 'कोई प्रोजेक्ट रिकॉर्ड उपलब्ध नहीं है' : 'कोई असेसमेंट रिकॉर्ड उपलब्ध नहीं है'}
               </h3>
               <p style={{ fontSize: 13, color: '#64748b', margin: '0 auto', maxWidth: 480 }}>
                 {type === 'Practical'
                   ? 'चयनित क्लास या फ़िल्टर में Practical / Lab Work एंट्री वाला कोई रिकॉर्ड नहीं मिला। सिलेबस प्रोग्रेस में जाकर विषय एडिट करें और "Practical / Lab Work" कॉलम में एंट्री दर्ज करें।'
+                  : type === 'Project'
+                  ? 'चयनित क्लास या फ़िल्टर में Project Work एंट्री वाला कोई रिकॉर्ड नहीं मिला। सिलेबस प्रोग्रेस में जाकर विषय एडिट करें और "Project Work" कॉलम में एंट्री दर्ज करें।'
                   : 'चयनित फ़िल्टर के लिए कोई रिकॉर्ड उपलब्ध नहीं है।'}
               </p>
             </div>
@@ -7006,7 +7076,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
                   <th>Month / Term</th>
                   <th>Subject</th>
                   <th>Chapter / Title</th>
-                  {type === 'Practical' ? <th>🔬 Practical / Lab Work Entry</th> : <th>Detailed Syllabus</th>}
+                  {type === 'Practical' ? <th>🔬 Practical / Lab Work Entry</th> : type === 'Project' ? <th>📁 Project / Assignment Entry</th> : <th>Detailed Syllabus</th>}
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -7022,6 +7092,10 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
                       {type === 'Practical' ? (
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 8, color: '#166534', fontWeight: 600, fontSize: 12, whiteSpace: 'pre-line' }}>
                           🔬 {x.practical}
+                        </div>
+                      ) : type === 'Project' ? (
+                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 12px', borderRadius: 8, color: '#1e40af', fontWeight: 600, fontSize: 12, whiteSpace: 'pre-line' }}>
+                          📁 {x.project}
                         </div>
                       ) : (
                         <div style={{ maxHeight: 120, overflowY: 'auto', whiteSpace: 'pre-line' }}>{x.topic}</div>
@@ -7040,7 +7114,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
                       <button
                         className="icon-btn"
                         onClick={() => setEditingTopic(x)}
-                        title="Edit practical/syllabus record"
+                        title={`Edit ${type.toLowerCase()}/syllabus record`}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
