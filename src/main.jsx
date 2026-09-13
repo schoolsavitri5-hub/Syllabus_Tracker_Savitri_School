@@ -95,6 +95,36 @@ demoClasses.forEach((className,classIndex)=>{
   })))
 })
 const statusValues=['Done','In Progress','Not Done']
+const normalizeText=(value='')=>String(value??'').trim().replace(/\s+/g,' ')
+const normalizeClassName=(value='')=>normalizeText(value)
+const normalizeSectionName=(value='A')=>{
+  const name=normalizeText(value).replace(/^section\s+/i,'')
+  return name||'A'
+}
+const normalizeStatus=(value='')=>{
+  const status=normalizeText(value).toLowerCase()
+  if(status==='done') return 'Done'
+  if(status==='in progress'||status==='in-progress'||status==='inprogress') return 'In Progress'
+  return 'Not Done'
+}
+const mergeImportedClassSections=(currentClasses,importedRows)=>{
+  const next=currentClasses.map(item=>({...item,sections:[...(item.sections||[])]}))
+  ;(importedRows||[]).forEach(row=>{
+    const className=normalizeClassName(row.className)
+    if(!className) return
+    const section=normalizeSectionName(row.section)
+    const classIndex=next.findIndex(item=>normalizeClassName(item.name).toLowerCase()===className.toLowerCase())
+    if(classIndex===-1){
+      next.push({name:className,group:getClassGroup(className),sections:[section]})
+      return
+    }
+    const existing=next[classIndex]
+    if(!(existing.sections||[]).some(item=>normalizeSectionName(item).toLowerCase()===section.toLowerCase())){
+      existing.sections=[...(existing.sections||[]),section]
+    }
+  })
+  return next
+}
 const examPatternDefs = {
   preprimary: [
     { id: 'ALL', label: 'All Exams (Full Syllabus)', shortLabel: 'All Exams' },
@@ -771,8 +801,186 @@ async function profileFor(authUser){
   const perms = getStoredPermissions(authUser.email, data.role);
   return {id:authUser.id,name:data.full_name,role:data.role,email:authUser.email,permissions:perms,avatar_url,photo:avatar_url}
 }
-function App(){const [user,setUser]=useState(null),[checking,setChecking]=useState(!!supabase);useEffect(()=>{if(!supabase){setChecking(false);return}let alive=true;const sync=async session=>{if(!session?.user){if(alive){setUser(null);setChecking(false)}return}try{let profile=await profileFor(session.user);if(alive)setUser(profile)}catch(error){if(alive)setUser(null)}finally{if(alive)setChecking(false)}};supabase.auth.getSession().then(({data})=>sync(data.session));const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>sync(session));return()=>{alive=false;subscription.unsubscribe()}},[]);if(checking)return <main className="login"><section className="login-panel"><div className="login-card"><Icons.LoaderCircle className="spin"/><p>Checking secure session…</p></div></section></main>;return <BrowserRouter>{user?<Shell user={user} setUser={setUser}/>:<Login setUser={setUser}/>}</BrowserRouter>}
-function Login({setUser}){const schoolProfile=useSchoolProfile();const [show,setShow]=useState(false),[creating,setCreating]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');const submit=async e=>{e.preventDefault();if(!supabase){setError('Supabase is not configured.');return}let d=new FormData(e.target),email=d.get('email').trim(),password=d.get('password');setLoading(true);setError('');setMessage('');try{if(creating){let fullName=d.get('fullName').trim();let {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name:fullName}}});if(error)throw error;if(data.session){setUser(await profileFor(data.user))}else setMessage('Account created. Check your email and confirm it before signing in.')}else{let {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;setUser(await profileFor(data.user))}}catch(err){setError(err.message||'Sign-in failed.')}finally{setLoading(false)}};return <main className="login"><section className="login-intro"><div className="intro-brand"><Logo/><div><b>SAVITRI SCHOOL</b><small>SYLLABUS TRACKER</small></div></div><div className="orb o1"/><div className="orb o2"/><div className="intro-copy"><span className="eyebrow light">SCHOOL MANAGEMENT PORTAL</span><h1>Progress, clearly in view.</h1><p>A focused workspace for syllabus planning, monthly tracking, and academic progress across every class.</p><div className="school-line"><Icons.MapPin/> <span><b>{schoolProfile.name}</b><br/>{schoolProfile.address}</span></div></div><div className="intro-bottom">School Syllabus Management & Progress Tracking System</div></section><section className="login-panel"><div className="login-card"><div className="mobile-logo"><Logo/></div><span className="eyebrow">SECURE ACCESS</span><h2>{creating?'Create first admin account':'Welcome back'}</h2><p>{creating?'Use your school administrator email':'Sign in to Syllabus Tracker'}</p><form onSubmit={submit}>{creating&&<label>Full name<input required name="fullName" placeholder="Administrator name"/></label>}<label>Email<input required name="email" placeholder="Enter your email" type="email"/></label><label>Password<div className="password"><input required minLength="6" name="password" type={show?'text':'password'} placeholder="Minimum 6 characters"/><button type="button" onClick={()=>setShow(!show)}>{show?<Icons.EyeOff/>:<Icons.Eye/>}</button></div></label>{error&&<div className="error">{error}</div>}{message&&<p className="notice">{message}</p>}<button className="primary full" disabled={loading}>{loading?<><Icons.LoaderCircle className="spin"/> Please wait…</>:(creating?'Create secure account':'Sign in securely')}<Icons.ArrowRight/></button></form><button className="text-btn" type="button" onClick={()=>{setCreating(v=>!v);setError('');setMessage('')}}>{creating?'Already have an account? Sign in':'First time here? Create the admin account'}</button><div className="secure"><Icons.ShieldCheck/> Protected school workspace</div></div></section></main>}
+function UpdatePassword({ onComplete }) {
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setSuccess(true);
+      setTimeout(onComplete, 2000);
+    } catch (err) {
+      setError(err.message || 'Failed to update password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="login">
+      <section className="login-panel" style={{margin:'0 auto', maxWidth: 440, width: '100%'}}>
+        <div className="login-card">
+          <div className="mobile-logo" style={{textAlign:'center', marginBottom:20}}><Logo/></div>
+          <span className="eyebrow" style={{display:'block', textAlign:'center'}}>SECURE ACCESS</span>
+          <h2 style={{textAlign:'center'}}>Set New Password</h2>
+          <p style={{textAlign:'center', marginBottom:24}}>Please enter your new password below.</p>
+          {success ? (
+            <div style={{background:'#f0fdf4',border:'1px solid #86efac',borderRadius:10,padding:'16px 18px',marginBottom:16}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                <Icons.CheckCircle2 size={22} style={{color:'#16a34a',flexShrink:0}}/>
+                <b style={{color:'#15803d',fontSize:15}}>Password Updated!</b>
+              </div>
+              <p style={{margin:0,fontSize:13,color:'#166534',lineHeight:1.5}}>
+                Your password has been successfully updated. Redirecting...
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={submit}>
+              <label>New Password
+                <input required minLength="6" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimum 6 characters"/>
+              </label>
+              {error && <div className="error">{error}</div>}
+              <button className="primary full" disabled={loading} style={{marginTop:12}}>
+                {loading ? <><Icons.LoaderCircle className="spin"/> Updating…</> : 'Update Password'}
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function App(){const [user,setUser]=useState(null),[checking,setChecking]=useState(!!supabase),[recovery,setRecovery]=useState(false);useEffect(()=>{if(!supabase){setChecking(false);return}let alive=true;const sync=async (session, event)=>{if(event==='PASSWORD_RECOVERY'){if(alive)setRecovery(true);}if(!session?.user){if(alive){setUser(null);setChecking(false)}return}try{let profile=await profileFor(session.user);if(alive)setUser(profile)}catch(error){if(supabase)supabase.auth.signOut().catch(()=>{});if(alive)setUser(null)}finally{if(alive)setChecking(false)}};supabase.auth.getSession().then(({data})=>sync(data.session, null));const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>sync(session, event));return()=>{alive=false;subscription.unsubscribe()}},[]);if(checking)return <main className="login"><section className="login-panel"><div className="login-card"><Icons.LoaderCircle className="spin"/><p>Checking secure session…</p></div></section></main>;if(recovery)return <UpdatePassword onComplete={()=>{setRecovery(false);}}/>;return <BrowserRouter>{user?<Shell user={user} setUser={setUser}/>:<Login setUser={setUser}/>}</BrowserRouter>}
+function Login({setUser}){
+  const schoolProfile=useSchoolProfile();
+  const [show,setShow]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+  const [message,setMessage]=useState('');
+  const [forgotMode,setForgotMode]=useState(false);
+  const [forgotEmail,setForgotEmail]=useState('');
+  const [forgotLoading,setForgotLoading]=useState(false);
+  const [forgotSent,setForgotSent]=useState(false);
+
+  const submit=async e=>{
+    e.preventDefault();
+    if(!supabase){setError('Supabase is not configured.');return}
+    const d=new FormData(e.target);
+    const email=d.get('email').trim();
+    const password=d.get('password');
+    setLoading(true);setError('');setMessage('');
+    try{
+      const {data,error}=await supabase.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      setUser(await profileFor(data.user));
+    }catch(err){
+      setError(err.message||'Sign-in failed.');
+    }finally{setLoading(false)}
+  };
+
+  const handleForgotPassword=async e=>{
+    e.preventDefault();
+    if(!supabase){setError('Supabase is not configured.');return}
+    if(!forgotEmail.trim()){setError('Please enter your email address.');return}
+    setForgotLoading(true);setError('');
+    try{
+      const {error}=await supabase.auth.resetPasswordForEmail(forgotEmail.trim(),{
+        redirectTo:window.location.origin+'/'
+      });
+      if(error)throw error;
+      setForgotSent(true);
+    }catch(err){
+      setError(err.message||'Failed to send reset email.');
+    }finally{setForgotLoading(false)}
+  };
+
+  return <main className="login">
+    <section className="login-intro">
+      <div className="intro-brand"><Logo/><div><b>SAVITRI SCHOOL</b><small>SYLLABUS TRACKER</small></div></div>
+      <div className="orb o1"/><div className="orb o2"/>
+      <div className="intro-copy">
+        <span className="eyebrow light">SCHOOL MANAGEMENT PORTAL</span>
+        <h1>Progress, clearly in view.</h1>
+        <p>A focused workspace for syllabus planning, monthly tracking, and academic progress across every class.</p>
+        <div className="school-line"><Icons.MapPin/> <span><b>{schoolProfile.name}</b><br/>{schoolProfile.address}</span></div>
+      </div>
+      <div className="intro-bottom">School Syllabus Management &amp; Progress Tracking System</div>
+    </section>
+    <section className="login-panel">
+      <div className="login-card">
+        <div className="mobile-logo"><Logo/></div>
+        <span className="eyebrow">SECURE ACCESS</span>
+        {forgotMode?(
+          <>
+            <h2>Reset Password</h2>
+            <p>Enter your registered email — we'll send a secure reset link.</p>
+            {forgotSent?(
+              <div style={{background:'#f0fdf4',border:'1px solid #86efac',borderRadius:10,padding:'16px 18px',marginBottom:16}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                  <Icons.MailCheck size={22} style={{color:'#16a34a',flexShrink:0}}/>
+                  <b style={{color:'#15803d',fontSize:15}}>Reset link sent!</b>
+                </div>
+                <p style={{margin:0,fontSize:13,color:'#166534',lineHeight:1.5}}>
+                  Check your email <b>{forgotEmail}</b> for the password reset link. Click the link to set a new password.
+                </p>
+              </div>
+            ):(
+              <form onSubmit={handleForgotPassword}>
+                <label>Email Address
+                  <input required type="email" placeholder="Enter your registered email" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
+                </label>
+                {error&&<div className="error">{error}</div>}
+                <button className="primary full" disabled={forgotLoading}>
+                  {forgotLoading?<><Icons.LoaderCircle className="spin"/> Sending…</>:<><Icons.Mail size={17}/> Send Reset Link</>}
+                  {!forgotLoading&&<Icons.ArrowRight/>}
+                </button>
+              </form>
+            )}
+            <button className="text-btn" type="button" onClick={()=>{setForgotMode(false);setForgotSent(false);setForgotEmail('');setError('');}}>
+              <Icons.ArrowLeft size={14}/> Back to Sign In
+            </button>
+          </>
+        ):(
+          <>
+            <h2>Welcome back</h2>
+            <p>Sign in to Syllabus Tracker</p>
+            <form onSubmit={submit}>
+              <label>Email<input required name="email" placeholder="Enter your email" type="email"/></label>
+              <label>Password
+                <div className="password">
+                  <input required minLength="6" name="password" type={show?'text':'password'} placeholder="Minimum 6 characters"/>
+                  <button type="button" onClick={()=>setShow(!show)}>{show?<Icons.EyeOff/>:<Icons.Eye/>}</button>
+                </div>
+              </label>
+              {error&&<div className="error">{error}</div>}
+              {message&&<p className="notice">{message}</p>}
+              <button className="primary full" disabled={loading}>
+                {loading?<><Icons.LoaderCircle className="spin"/> Please wait…</>:'Sign in securely'}
+                {!loading&&<Icons.ArrowRight/>}
+              </button>
+            </form>
+            <button className="text-btn" type="button" onClick={()=>{setForgotMode(true);setError('');setMessage('');}}>
+              <Icons.KeyRound size={14}/> Forgot Password?
+            </button>
+          </>
+        )}
+        <div className="secure"><Icons.ShieldCheck/> Protected school workspace</div>
+      </div>
+    </section>
+  </main>
+}
 const defaultSchoolClasses = [
   { name: 'Nursery', sections: ['A'], group: 'preprimary' },
   { name: 'LKG', sections: ['A', 'B'], group: 'preprimary' },
@@ -812,7 +1020,12 @@ function ScrollToTop() {
 
 function Shell({user,setUser}){
   const [open,setOpen]=useState(()=>typeof window !== 'undefined' ? window.innerWidth > 800 : true);
-  const [schoolClasses, setSchoolClasses] = useState(defaultSchoolClasses);
+  const [schoolClasses, setSchoolClasses] = useState(()=>{
+    try {
+      const saved=JSON.parse(localStorage.getItem('school_class_sections')||'null');
+      return Array.isArray(saved)&&saved.length?saved:defaultSchoolClasses;
+    } catch { return defaultSchoolClasses; }
+  });
   const [dark,setDark]=useState(()=>{const saved=localStorage.getItem('theme');return saved==='dark'});
   const [sessions, setSessions] = useState(getStoredSessions);
   const [currentSession, setCurrentSession] = useState(getActiveSessionId);
@@ -826,6 +1039,8 @@ function Shell({user,setUser}){
   const { avatarImg, avatarColor } = useAvatarState(user);
 
   React.useEffect(()=>{document.body.classList.toggle('dark',dark);localStorage.setItem('theme',dark?'dark':'light')},[dark]);
+  React.useEffect(()=>{localStorage.setItem('school_class_sections',JSON.stringify(schoolClasses))},[schoolClasses]);
+  const syncImportedClassSections=(importedRows)=>setSchoolClasses(previous=>mergeImportedClassSections(previous,importedRows));
 
   function switchSession(newSessionId) {
     setCurrentSession(newSessionId);
@@ -1053,10 +1268,10 @@ function Shell({user,setUser}){
         <WelcomeMarquee />
         <main className="content">
           <Routes>
-            <Route path="/dashboard" element={hasUserPermission(user,'dashboard') ? <Dashboard user={user} currentSession={currentSession} sessions={sessions} onSwitchSession={switchSession} onOpenCreateSession={() => setCreateSessionOpen(true)} onOpenResetStatus={(s) => setResetStatusTarget(s || sessions.find(x => x.id === currentSession) || { id: currentSession, name: currentSession })} /> : <Navigate to="/profile"/>} />
+            <Route path="/dashboard" element={hasUserPermission(user,'dashboard') ? <Dashboard user={user} currentSession={currentSession} sessions={sessions} onSwitchSession={switchSession} onClassSectionSync={syncImportedClassSections} onOpenCreateSession={() => setCreateSessionOpen(true)} onOpenResetStatus={(s) => setResetStatusTarget(s || sessions.find(x => x.id === currentSession) || { id: currentSession, name: currentSession })} /> : <Navigate to="/profile"/>} />
             <Route path="/classes" element={hasUserPermission(user,'classes') ? <Classes schoolClasses={schoolClasses} setSchoolClasses={setSchoolClasses} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
-            <Route path="/syllabus" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
-            <Route path="/syllabus/:subject" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
+            <Route path="/syllabus" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} onClassSectionSync={syncImportedClassSections} /> : <Navigate to="/dashboard"/>} />
+            <Route path="/syllabus/:subject" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} onClassSectionSync={syncImportedClassSections} /> : <Navigate to="/dashboard"/>} />
             <Route path="/practicals" element={hasUserPermission(user,'practicals') ? <Tracker type="Practical" schoolClasses={schoolClasses} user={user} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
             <Route path="/projects" element={hasUserPermission(user,'projects') ? <Tracker type="Project" schoolClasses={schoolClasses} user={user} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
             <Route path="/users" element={hasUserPermission(user,'users_manage') ? <Users user={user}/> : <Navigate to="/dashboard"/>} />
@@ -1295,7 +1510,7 @@ function Header({title,user,sidebarOpen,onToggleSidebar,dark,setDark,setUser,ses
         )}
         <div><b>{user.name}</b><Status value={user.role==='ADMIN'?'Admin':'Computer Operator'}/></div>
       </div>
-      <button className="header-logout" onClick={()=>setUser(null)} title="Logout"><Icons.LogOut size={18}/></button>
+      <button className="header-logout" onClick={async()=>{if(supabase)await supabase.auth.signOut().catch(()=>{});setUser(null);}} title="Logout"><Icons.LogOut size={18}/></button>
     </div>
   </header>}
 function Filters({
@@ -1396,7 +1611,7 @@ function CustomChartTooltip({ active, payload, isClass, examLabel }) {
   return null;
 }
 
-function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSession, onOpenCreateSession, onOpenResetStatus }) {
+function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSession, onClassSectionSync, onOpenCreateSession, onOpenResetStatus }) {
   const schoolProfile = useSchoolProfile();
   const { avatarImg, avatarColor } = useAvatarState(user);
   const { topics, dbClasses, reload, setTopics } = useTopics(currentSession),
@@ -1960,6 +2175,7 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
         dbClasses={dbClasses}
         reload={reload}
         setTopics={setTopics}
+        onClassSectionSync={onClassSectionSync}
         onSuccess={(msg)=>setToast(msg)}
       />
     )}
@@ -2168,11 +2384,11 @@ async function downloadSampleExcelTemplate() {
     row.getCell(3).dataValidation = sectionValidation; // Section
     row.getCell(5).dataValidation = monthValidation;   // Month / Term Dropdown
     row.getCell(6).dataValidation = examValidation;    // Assessment / Exam Dropdown
-    row.getCell(11).dataValidation = statusValidation; // Status Dropdown
+    row.getCell(12).dataValidation = statusValidation; // Status Dropdown
   }
 
-  // AutoFilter across all 12 columns
-  ws.autoFilter = 'A1:L500';
+  // AutoFilter across all columns, including Remarks.
+  ws.autoFilter = 'A1:M500';
 
   // Sheet 2: Guidelines & Instructions
   const wsGuide = wb.addWorksheet('Instructions_&_Guidelines');
@@ -2228,73 +2444,87 @@ async function downloadSampleExcelTemplate() {
   URL.revokeObjectURL(url);
 }
 
-async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
+async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSectionSync=()=>{}) {
   let updatedCount = 0;
   let createdCount = 0;
+  const preparedRows = rows.map(row => ({
+    ...row,
+    className: normalizeClassName(row.className || 'Class 1'),
+    section: normalizeSectionName(row.section),
+    subject: normalizeText(row.subject || 'General'),
+    status: normalizeStatus(row.status)
+  }));
 
   if (supabase) {
     const cRes = await supabase.from('classes').select('id, class_name');
     const sRes = await supabase.from('subjects').select('id, subject_name');
-    const classMap = new Map((cRes.data || []).map(c => [c.class_name.toLowerCase().trim(), c.id]));
-    const subjectMap = new Map((sRes.data || []).map(s => [s.subject_name.toLowerCase().trim(), s.id]));
+    if (cRes.error) throw cRes.error;
+    if (sRes.error) throw sRes.error;
+    const classMap = new Map((cRes.data || []).map(c => [normalizeClassName(c.class_name).toLowerCase(), c.id]));
+    const subjectMap = new Map((sRes.data || []).map(s => [normalizeText(s.subject_name).toLowerCase(), s.id]));
+    const sectionsByClass = new Map();
     const replacedScopes = new Set();
 
-    for (const row of rows) {
+    const getOrCreateSection = async (classId, sectionName) => {
+      if (!sectionsByClass.has(classId)) {
+        const { data, error } = await supabase.from('sections').select('id, section_name').eq('class_id', classId);
+        if (error) throw error;
+        sectionsByClass.set(classId, new Map((data || []).map(section => [normalizeSectionName(section.section_name).toLowerCase(), section.id])));
+      }
+      const sectionMap = sectionsByClass.get(classId);
+      const sectionKey = normalizeSectionName(sectionName).toLowerCase();
+      if (sectionMap.has(sectionKey)) return sectionMap.get(sectionKey);
+
+      const { data: newSection, error: sectionError } = await supabase
+        .from('sections')
+        .insert({ class_id: classId, section_name: normalizeSectionName(sectionName) })
+        .select('id')
+        .single();
+      if (sectionError) throw sectionError;
+      const sectionId = newSection?.id;
+      if (!sectionId) throw new Error(`Could not create Section ${sectionName}.`);
+      sectionMap.set(sectionKey, sectionId);
+      return sectionId;
+    };
+
+    for (const row of preparedRows) {
       let subjectId = null;
       let classId = null;
 
-      if (row.className) {
-        const cKey = row.className.toLowerCase().trim();
+      {
+        const cKey = normalizeClassName(row.className).toLowerCase();
         if (classMap.has(cKey)) {
           classId = classMap.get(cKey);
         } else {
           const grp = getClassGroup(row.className) === 'senior' ? 'SENIOR' : getClassGroup(row.className) === 'preprimary' ? 'PREPRIMARY' : 'PRIMARY';
-          const { data: newClass } = await supabase.from('classes').insert({ class_name: row.className, class_group: grp }).select('id').single();
-          if (newClass) {
-            classId = newClass.id;
-            classMap.set(cKey, newClass.id);
-          }
+          const { data: newClass, error: classError } = await supabase.from('classes').insert({ class_name: row.className, class_group: grp }).select('id').single();
+          if (classError) throw classError;
+          classId = newClass?.id;
+          if (!classId) throw new Error(`Could not create Class ${row.className}.`);
+          classMap.set(cKey, classId);
         }
       }
 
-      if (row.subject) {
-        const sKey = row.subject.toLowerCase().trim();
+      {
+        const sKey = normalizeText(row.subject).toLowerCase();
         if (subjectMap.has(sKey)) {
           subjectId = subjectMap.get(sKey);
         } else {
-          const { data: newSub } = await supabase.from('subjects').insert({ subject_name: row.subject }).select('id').single();
-          if (newSub) {
-            subjectId = newSub.id;
-            subjectMap.set(sKey, newSub.id);
-          }
+          const { data: newSub, error: subjectError } = await supabase.from('subjects').insert({ subject_name: row.subject }).select('id').single();
+          if (subjectError) throw subjectError;
+          subjectId = newSub?.id;
+          if (!subjectId) throw new Error(`Could not create Subject ${row.subject}.`);
+          subjectMap.set(sKey, subjectId);
         }
       }
 
       // Excel is the source of truth for the uploaded class/section/subject.
       // Clear a subject once before inserting its uploaded rows, so stale practical
       // entries cannot appear in the Practical tab or A4 reports.
-      const scopeKey = `${classId || ''}:${subjectId || ''}:${row.section || ''}`;
+      const sectionName = normalizeSectionName(row.section);
+      const sectionId = await getOrCreateSection(classId, sectionName);
+      const scopeKey = `${classId}:${subjectId}:${sectionId}`;
       if (classId && subjectId && !replacedScopes.has(scopeKey)) {
-        let sectionId = null;
-        const sectionName = (row.section || 'A').trim();
-        const sectionRes = await supabase
-          .from('sections')
-          .select('id')
-          .eq('class_id', classId)
-          .eq('section_name', sectionName)
-          .maybeSingle();
-        if (sectionRes.data?.id) {
-          sectionId = sectionRes.data.id;
-        } else {
-          const { data: newSection, error: sectionError } = await supabase
-            .from('sections')
-            .insert({ class_id: classId, section_name: sectionName })
-            .select('id')
-            .single();
-          if (sectionError) throw sectionError;
-          sectionId = newSection?.id || null;
-        }
-
         let deleteQuery = supabase
           .from('syllabus_topics')
           .delete()
@@ -2312,27 +2542,20 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
         replacedScopes.add(scopeKey);
       }
 
-      let sectionId = null;
-      if (classId) {
-        const sectionName = (row.section || 'A').trim();
-        const sectionRes = await supabase.from('sections').select('id').eq('class_id', classId).eq('section_name', sectionName).maybeSingle();
-        sectionId = sectionRes.data?.id || null;
-      }
-
       const payload = {
         month: row.month || 'Apr - July',
         unit_chapter_en: row.chapter || '',
         unit_chapter_hi: row.hindi || null,
         topic_en: row.topic || '',
         assessment_en: row.assessment || null,
-        status: statusValues.includes(row.status) ? row.status : 'Not Done',
+        status: row.status,
         practical: row.practical?.trim() || null,
         project: row.project?.trim() || null,
         remarks: row.remarks || null
       };
-      if (classId) payload.class_id = classId;
-      if (subjectId) payload.subject_id = subjectId;
-      if (sectionId) payload.section_id = sectionId;
+      payload.class_id = classId;
+      payload.subject_id = subjectId;
+      payload.section_id = sectionId;
 
       const { error: insertError } = await supabase.from('syllabus_topics').insert(payload);
       if (insertError) throw insertError;
@@ -2341,9 +2564,9 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
     await reload();
   } else {
     setTopics(prev => {
-      const importedScopes = new Set(rows.map(r => `${(r.className || '').toLowerCase()}::${(r.section || 'A').toLowerCase()}::${(r.subject || '').toLowerCase()}`));
+      const importedScopes = new Set(preparedRows.map(r => `${r.className.toLowerCase()}::${r.section.toLowerCase()}::${r.subject.toLowerCase()}`));
       const copy = prev.filter(t => !importedScopes.has(`${(t.className || '').toLowerCase()}::${(t.section || 'A').toLowerCase()}::${(t.subject || '').toLowerCase()}`));
-      rows.forEach(r => {
+      preparedRows.forEach(r => {
         copy.push({
           id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           className: r.className || 'Class 1',
@@ -2357,7 +2580,7 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
           practical: r.practical || '',
           project: r.project || '',
           assessment: r.assessment || 'PA 1',
-          status: statusValues.includes(r.status) ? r.status : 'Not Done',
+          status: r.status,
           remarks: r.remarks || ''
         });
         createdCount++;
@@ -2366,10 +2589,11 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics) {
     });
   }
 
-  return { updatedCount, createdCount, total: rows.length };
+  onClassSectionSync(preparedRows);
+  return { updatedCount, createdCount, total: preparedRows.length };
 }
 
-function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess }) {
+function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, onClassSectionSync }) {
   const [file, setFile] = useState(null);
   const [report, setReport] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -2402,9 +2626,9 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess })
           };
 
           const id = getVal(['id', 'topic id', 'topic_id']);
-          const className = getVal(['class', 'class name', 'classname', 'grade']) || (sheet.toLowerCase().startsWith('class') ? sheet : 'Class 1');
-          const section = getVal(['section', 'sec']) || 'A';
-          const subject = getVal(['subject', 'subject name', 'subject_name']) || sheet;
+          const className = normalizeClassName(getVal(['class', 'class name', 'classname', 'grade']) || (sheet.toLowerCase().startsWith('class') ? sheet : 'Class 1'));
+          const section = normalizeSectionName(getVal(['section', 'sec']));
+          const subject = normalizeText(getVal(['subject', 'subject name', 'subject_name']) || sheet);
           const month = getVal(['month', 'month / term', 'month/term', 'term', 'month_term']) || 'Apr - July';
           const assessment = getVal(['assessment', 'assessment / exam', 'exam', 'assessment_en', 'exam pattern', 'exam_pattern']) || '';
           const chapter = getVal(['chapter', 'chapter / title', 'chapter_title', 'title', 'unit_chapter_en', 'unit / chapter', 'name']);
@@ -2412,14 +2636,8 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess })
           const topic = getVal(['detailed syllabus / topic', 'detailed syllabus', 'syllabus', 'topic', 'topic_en', 'topic english', 'learning objectives']);
           const practical = getVal(['practical', 'practical / lab work', 'practical/lab work', 'lab work', 'practicals', 'experiment', 'lab experiment', 'activity']);
           const project = getVal(['project', 'project work', 'projects', 'assignment', 'project/assignment', 'project / assignment']);
-          let status = getVal(['status']);
+          let status = normalizeStatus(getVal(['status']));
           const remarks = getVal(['remarks', 'remark', 'notes']);
-
-          if (!statusValues.includes(status)) {
-            if (status.toLowerCase().includes('done') && !status.toLowerCase().includes('not')) status = 'Done';
-            else if (status.toLowerCase().includes('progress')) status = 'In Progress';
-            else status = 'Not Done';
-          }
 
           if (chapter || topic) {
             parsedRows.push({
@@ -2476,7 +2694,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess })
     setBusy(true);
     setError('');
     try {
-      const res = await applyExcelUpdates(report.rows, dbClasses, reload, setTopics);
+      const res = await applyExcelUpdates(report.rows, dbClasses, reload, setTopics, onClassSectionSync);
       onSuccess(`🎉 Congratulations! Excel update successful: ${res.updatedCount} records updated, ${res.createdCount} new records added across ${report.summary.classes.length} classes!`);
       close();
     } catch (err) {
@@ -6562,7 +6780,7 @@ function Classes({ schoolClasses = [], setSchoolClasses, user }) {
     </>
   );
 }
-function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
+function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClassSectionSync }){
   const {topics,dbClasses,loading,error,reload,setTopics}=useTopics(currentSession),
         [q,setQ]=useState(''),
         [group,setGroup]=useState('all'),
@@ -7067,6 +7285,7 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27' }){
         schoolClasses={schoolClasses}
         reload={reload}
         setTopics={setTopics}
+        onClassSectionSync={onClassSectionSync}
         onSuccess={(msg)=>setToast(msg)}
       />
     )}

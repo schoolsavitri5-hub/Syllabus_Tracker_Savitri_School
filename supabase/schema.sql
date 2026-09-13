@@ -1,7 +1,7 @@
 create type public.app_role as enum ('ADMIN','COMPUTER_OPERATOR');
 create type public.topic_status as enum ('Done','In Progress','Not Done');
 create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text not null, role app_role not null default 'COMPUTER_OPERATOR', active boolean not null default true, created_at timestamptz default now());
-create table public.classes (id uuid primary key default gen_random_uuid(), class_name text not null unique, class_group text not null check (class_group in ('PRIMARY','SENIOR')), active boolean default true, created_at timestamptz default now());
+create table public.classes (id uuid primary key default gen_random_uuid(), class_name text not null unique, class_group text not null check (class_group in ('PREPRIMARY','PRIMARY','SENIOR')), active boolean default true, created_at timestamptz default now());
 create table public.sections (id uuid primary key default gen_random_uuid(), class_id uuid not null references public.classes(id), section_name text not null, active boolean default true, created_at timestamptz default now(), unique(class_id,section_name));
 create table public.subjects (id uuid primary key default gen_random_uuid(), subject_name text not null unique, active boolean default true);
 create table public.syllabus_files (id uuid primary key default gen_random_uuid(), class_id uuid references public.classes(id), section_id uuid references public.sections(id), file_name text not null, storage_path text not null, version int not null, is_current boolean default true, uploaded_by uuid references public.profiles(id), uploaded_at timestamptz default now(), unique(class_id,section_id,version));
