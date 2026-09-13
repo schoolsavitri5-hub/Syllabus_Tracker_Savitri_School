@@ -9,3 +9,62 @@ body.dark .login-card input{background:#0f172a;border-color:#334155;color:#e2e8f
 body.dark .secure{border-top-color:#334155;color:#64748b}
 body.dark .forgot{color:#60a5fa}
 
+/* Campus-led login experience */
+.login-intro{isolation:isolate;background:#082c5d}
+.login-campus-photo{position:absolute;inset:0;background-image:url('/images/login-school-building.png');background-position:center;background-size:cover;z-index:0;transform:scale(1.025);animation:campus-settle 18s ease-in-out infinite alternate}
+.login-photo-wash{position:absolute;inset:0;z-index:1;background:linear-gradient(118deg,rgba(5,27,68,.94) 0%,rgba(12,61,113,.78) 42%,rgba(7,45,91,.45) 100%);animation:campus-hue 20s ease-in-out infinite alternate}
+.login-intro::before{content:'';position:absolute;inset:22px;border:1px solid rgba(255,255,255,.42);border-radius:22px;z-index:2;pointer-events:none;box-shadow:inset 0 0 0 7px rgba(3,24,56,.13),0 0 38px rgba(108,198,255,.2);animation:border-glow 14s ease-in-out infinite alternate}
+.login-intro::after{content:'';position:absolute;inset:34px;border:1px solid rgba(158,222,255,.28);border-radius:15px;z-index:2;pointer-events:none}
+.intro-brand{position:relative;z-index:3;padding:12px 14px;margin:-12px -14px;background:rgba(5,28,62,.27);border:1px solid rgba(232,248,255,.2);border-radius:15px;backdrop-filter:blur(7px)}
+.intro-copy,.intro-bottom{position:relative;z-index:3}.intro-copy{padding:27px 29px;border-left:2px solid rgba(149,224,255,.92);background:linear-gradient(90deg,rgba(3,25,57,.57),rgba(3,25,57,.07));border-radius:0 20px 20px 0;box-shadow:-10px 0 26px rgba(4,23,52,.16)}
+.intro-copy h1{font-size:clamp(38px,3.2vw,52px);text-shadow:0 3px 22px rgba(0,0,0,.38)}
+.intro-copy p{color:#e7f3ff;text-shadow:0 1px 10px rgba(0,0,0,.35)}
+.light{color:#a7ebff;letter-spacing:.12em}.school-line{color:#edf8ff}.intro-bottom{padding:9px 12px;border-radius:10px;background:rgba(5,28,62,.3);backdrop-filter:blur(5px);align-self:flex-start}
+.orb{display:none}
+.login-panel{position:relative;overflow:hidden;background:radial-gradient(circle at 82% 12%,#d9f7ff 0,transparent 32%),#f7fbff}
+.login-panel::before{content:'';position:absolute;width:440px;height:440px;border-radius:50%;border:1px solid rgba(30,121,190,.14);top:-190px;right:-170px;animation:panel-drift 18s ease-in-out infinite alternate}
+.login-card{position:relative;z-index:1;border:1px solid rgba(42,128,188,.23);border-top:4px solid #f58220;box-shadow:0 22px 55px rgba(13,67,125,.18)}
+.login .eyebrow{color:#0e668f;font-weight:800;letter-spacing:.14em}
+.login-card h2{color:#0a396d;font-weight:800;letter-spacing:-.02em}
+.login-card>p{color:#45647e;font-weight:500;line-height:1.55}
+.login-card label{color:#183f67;font-size:12px;font-weight:800}
+.login-card input{border-color:#b7cee5;background:#f8fbff;color:#163b61;font-weight:600}
+.login-card input::placeholder{color:#708aa6;font-weight:400}
+.login .primary{background:linear-gradient(135deg,#075aab,#0c74c8);box-shadow:0 8px 18px rgba(5,86,168,.23);border:1px solid rgba(255,255,255,.3)}
+.login .primary:hover{background:linear-gradient(135deg,#064d94,#0964ae);box-shadow:0 10px 22px rgba(5,86,168,.32)}
+.login .text-btn{color:#075c9e;font-weight:800}
+.login-card{border-top-color:#0b68b9}
+@keyframes campus-settle{from{transform:scale(1.025) translate3d(0,0,0)}to{transform:scale(1.08) translate3d(-1.2%,-.8%,0)}}
+@keyframes campus-hue{from{background-color:rgba(10,67,135,.08)}to{background-color:rgba(85,34,133,.16)}}
+@keyframes border-glow{from{border-color:rgba(158,222,255,.28);box-shadow:inset 0 0 0 7px rgba(3,24,56,.13),0 0 26px rgba(108,198,255,.14)}to{border-color:rgba(255,208,137,.55);box-shadow:inset 0 0 0 7px rgba(3,24,56,.13),0 0 42px rgba(255,181,100,.28)}}
+@keyframes panel-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-28px,26px,0)}}
+@media(max-width:800px){.login-intro{display:flex;min-height:220px;padding:26px 24px}.login-intro::before{inset:12px;border-radius:16px}.login-intro::after{display:none}.intro-copy{display:none}.intro-bottom{margin-top:auto;font-size:10px}.login-panel{padding-top:28px}.mobile-logo{display:none}}
+@media(max-width:480px){.login-intro{min-height:185px;padding:22px}.intro-brand{transform:scale(.9);transform-origin:left top}.intro-bottom{font-size:9px}}
+
+/* Keep the original blue government-portal backdrop; campus photos are compact, crisp cards. */
+.login-intro{background:#0b4b96;isolation:auto}
+.login-intro::before,.login-intro::after{content:none}
+.intro-brand{position:relative;z-index:3;padding:0;margin:0;background:transparent;border:0;border-radius:0;backdrop-filter:none}
+.intro-copy,.intro-bottom{position:relative;z-index:3}.intro-copy{padding:0;border:0;background:transparent;border-radius:0;box-shadow:none}
+.intro-copy h1{font-size:46px;text-shadow:none}.intro-copy p{color:#d5e8ff;text-shadow:none}.light{color:#b5dbff;letter-spacing:1.2px}.school-line{color:#cfe5ff}.intro-bottom{padding:0;border-radius:0;background:transparent;backdrop-filter:none;align-self:auto}
+.orb{display:block}.o1{z-index:0}.o2{z-index:0}
+.login-campus-gallery{position:relative;z-index:2;margin:28px 0 0;display:flex;gap:14px;align-items:flex-start}
+.campus-card{width:190px;margin:0;position:relative;overflow:hidden;border-radius:13px;background:#fff;border:3px solid rgba(255,255,255,.92);box-shadow:0 12px 25px rgba(1,28,73,.35),0 0 0 1px rgba(151,220,255,.65);animation:photo-glow 7s ease-in-out infinite alternate}
+.campus-card img{display:block;width:100%;height:136px;object-fit:cover;object-position:center;filter:saturate(1.08) contrast(1.035) brightness(1.035);transition:transform .5s ease}
+.campus-front img{object-position:center 58%}.campus-back img{object-position:center 58%}
+.campus-card::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 24%,rgba(255,255,255,.38) 47%,transparent 70%);transform:translateX(-140%);animation:photo-sheen 10s ease-in-out infinite;pointer-events:none}
+.campus-card:hover img{transform:scale(1.06)}
+@keyframes photo-glow{from{box-shadow:0 12px 25px rgba(1,28,73,.35),0 0 0 1px rgba(151,220,255,.65)}to{box-shadow:0 14px 30px rgba(1,28,73,.45),0 0 18px rgba(148,218,255,.42)}}
+@keyframes photo-sheen{0%,54%{transform:translateX(-140%)}72%,100%{transform:translateX(140%)}}
+.login-intro .intro-copy{margin:30px 0 0}.login-intro .intro-bottom{margin-top:auto}
+@media(max-width:800px){.login-intro{display:flex;min-height:300px;padding:30px 24px}.login-campus-gallery{margin-top:20px;gap:10px}.campus-card{width:calc(50% - 5px)}.campus-card img{height:118px}.intro-bottom{margin-top:auto}.mobile-logo{display:none}}
+@media(max-width:480px){.login-intro{min-height:276px;padding:24px 20px}.intro-brand{transform:scale(.92);transform-origin:left top}.login-campus-gallery{margin-top:16px;gap:8px}.campus-card{border-width:2px;border-radius:10px}.campus-card img{height:98px}.intro-bottom{font-size:9px}}
+
+.intro-brand small span{color:#d8efff;font-weight:700;white-space:nowrap}
+.developer-credit{margin-top:17px;padding-top:13px;border-top:1px solid rgba(207,229,255,.34);display:flex;align-items:center;gap:11px;color:#e9f5ff}
+.developer-photo{width:54px;height:54px;flex:0 0 54px;border-radius:50%;overflow:hidden;border:2px solid rgba(232,249,255,.94);box-shadow:0 4px 13px rgba(1,25,65,.4);background:#cbe7f5}
+.developer-photo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+.developer-credit-copy{display:flex;flex-direction:column;gap:3px}.developer-credit span{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b8dfff}
+.developer-credit strong{font-family:'Snell Roundhand','Brush Script MT','Segoe Script',cursive;font-size:23px;line-height:1.05;font-weight:600;letter-spacing:.02em;color:#fff;text-shadow:0 2px 10px rgba(1,25,68,.38)}
+.developer-credit em{font-family:Arial,Helvetica,sans-serif;font-size:10px;font-style:normal;font-weight:700;letter-spacing:.04em;color:#cce9ff;vertical-align:middle}
+@media(max-width:800px){.intro-brand small span{display:block;margin-top:4px}.developer-credit{display:none}}

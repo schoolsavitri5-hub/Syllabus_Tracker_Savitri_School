@@ -908,13 +908,20 @@ function Login({setUser}){
 
   return <main className="login">
     <section className="login-intro">
-      <div className="intro-brand"><Logo/><div><b>SAVITRI SCHOOL</b><small>SYLLABUS TRACKER</small></div></div>
+      <div className="intro-brand"><Logo/><div><b>SAVITRI SCHOOL</b><small>SYLLABUS TRACKER <span>• SCHOOL MANAGEMENT PORTAL</span></small></div></div>
+      <div className="login-campus-gallery" aria-label="Savitri Balika Inter College campus photographs">
+        <figure className="campus-card campus-front"><img src="/images/login-school-building.png" alt="Savitri Balika Inter College front building and gate"/></figure>
+        <figure className="campus-card campus-back"><img src="/images/login-school-campus.jpg" alt="Savitri Balika Inter College campus building"/></figure>
+      </div>
       <div className="orb o1"/><div className="orb o2"/>
       <div className="intro-copy">
-        <span className="eyebrow light">SCHOOL MANAGEMENT PORTAL</span>
         <h1>Progress, clearly in view.</h1>
         <p>A focused workspace for syllabus planning, monthly tracking, and academic progress across every class.</p>
         <div className="school-line"><Icons.MapPin/> <span><b>{schoolProfile.name}</b><br/>{schoolProfile.address}</span></div>
+        <div className="developer-credit">
+          <div className="developer-photo"><img src="/images/akash-yadav-circle.png" alt="Akash Yadav"/></div>
+          <div className="developer-credit-copy"><span>Designed &amp; Developed by</span><strong>Akash Yadav <em>(B.Tech, CSE)</em></strong></div>
+        </div>
       </div>
       <div className="intro-bottom">School Syllabus Management &amp; Progress Tracking System</div>
     </section>
