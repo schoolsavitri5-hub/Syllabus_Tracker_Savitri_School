@@ -2517,11 +2517,15 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
   let createdCount = 0;
   const preparedRows = rows.map(row => ({
     ...row,
-    className: normalizeClassName(row.className || 'Class 1'),
+    className: normalizeClassName(row.className),
     section: row.section,
     subject: normalizeText(row.subject || 'General'),
     status: normalizeStatus(row.status)
   }));
+
+  if (preparedRows.some(row => !row.className)) {
+    throw new Error('Every imported syllabus row must have a Class. Please enter a class on the first row of each group.');
+  }
 
   const existingNamesForClass = (className, sectionMap) => {
     if (sectionMap && sectionMap.size) return [...sectionMap.values()].map(item => item.name);
@@ -2662,9 +2666,9 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
       expandedRows.forEach(r => {
         copy.push({
           id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          className: r.className || 'Class 1',
+          className: r.className,
           section: normalizeSectionName(r.section),
-          group: getClassGroup(r.className || 'Class 1'),
+          group: getClassGroup(r.className),
           subject: r.subject || 'General',
           month: r.month || 'Apr - July',
           chapter: r.chapter || '',
@@ -2706,25 +2710,46 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
       for (const sheet of book.SheetNames) {
         if (/instruction|guideline|readme/i.test(sheet)) continue;
         const rawRows = XLSX.utils.sheet_to_json(book.Sheets[sheet], { defval: '', raw: false });
+        const sheetClass = /^class\s*\d+$/i.test(normalizeText(sheet)) ? normalizeClassName(sheet) : '';
+        // Excel often displays a class only once and leaves the continuation rows blank.
+        // Keep that row context; never substitute an unrelated default class.
+        let previous = { className: sheetClass, section: '', subject: '', month: '', assessment: '', chapter: '', hindi: '' };
         for (const r of rawRows) {
           const getVal = (possibleKeys) => pickColumnValue(r, possibleKeys);
 
           const id = getVal(['id', 'topic id', 'topic_id']);
-          const className = normalizeClassName(getVal(['class', 'class name', 'classname', 'grade']) || (sheet.toLowerCase().startsWith('class') ? sheet : 'Class 1'));
+          const classCell = getVal(['class', 'class name', 'classname', 'grade']);
+          const className = normalizeClassName(classCell || previous.className);
           const sectionRaw = getVal(['section', 'section name', 'stream']);
-          const section = isAllSectionsValue(sectionRaw) ? 'All' : normalizeSectionName(sectionRaw);
-          const subject = normalizeText(getVal(['subject', 'subject name', 'subject_name']) || ( /syllabus|template/i.test(sheet) ? '' : sheet ));
-          const month = getVal(['month', 'month / term', 'month/term', 'term', 'month_term']) || 'Apr - July';
-          const assessment = getVal(['assessment', 'assessment / exam', 'exam', 'assessment_en', 'exam pattern', 'exam_pattern']) || '';
-          const chapter = getVal(['chapter', 'chapter / title', 'chapter_title', 'unit_chapter_en', 'unit / chapter']);
-          const hindi = getVal(['hindi', 'hindi title', 'hindi_title', 'unit_chapter_hi', 'विषय हिन्दी', 'hindi topic']);
+          const section = isAllSectionsValue(sectionRaw) ? 'All' : normalizeSectionName(sectionRaw || previous.section || 'A');
+          const subjectCell = getVal(['subject', 'subject name', 'subject_name']);
+          const subject = normalizeText(subjectCell || previous.subject || (/syllabus|template/i.test(sheet) ? '' : sheet));
+          const monthCell = getVal(['month', 'month / term', 'month/term', 'term', 'month_term']);
+          const month = monthCell || previous.month || 'Apr - July';
+          const assessmentCell = getVal(['assessment', 'assessment / exam', 'exam', 'assessment_en', 'exam pattern', 'exam_pattern']);
+          const assessment = assessmentCell || previous.assessment || '';
+          const chapterCell = getVal(['chapter', 'chapter / title', 'chapter_title', 'unit_chapter_en', 'unit / chapter']);
+          const chapter = chapterCell || previous.chapter;
+          const hindiCell = getVal(['hindi', 'hindi title', 'hindi_title', 'unit_chapter_hi', 'विषय हिन्दी', 'hindi topic']);
+          const hindi = hindiCell || previous.hindi;
           const topic = getVal(['detailed syllabus / topic', 'detailed syllabus', 'syllabus', 'topic', 'topic_en', 'topic english', 'learning objectives']);
           const practical = getVal(['practical', 'practical / lab work', 'practical/lab work', 'lab work', 'practicals', 'experiment', 'lab experiment', 'activity']);
           const project = getVal(['project', 'project work', 'projects', 'assignment', 'project/assignment', 'project / assignment']);
           let status = normalizeStatus(getVal(['status']));
           const remarks = getVal(['remarks', 'remark', 'notes']);
 
+          if (className) previous.className = className;
+          if (sectionRaw) previous.section = section;
+          if (subjectCell) previous.subject = subject;
+          if (monthCell) previous.month = month;
+          if (assessmentCell) previous.assessment = assessment;
+          if (chapterCell) previous.chapter = chapter;
+          if (hindiCell) previous.hindi = hindi;
+
           if (chapter || topic) {
+            if (!className) {
+              throw new Error(`A syllabus row in sheet "${sheet}" has no Class. Enter the class in the first row of that group.`);
+            }
             parsedRows.push({
               id,
               className,
