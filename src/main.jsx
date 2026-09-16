@@ -7050,7 +7050,26 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
     }
   };
 
+  const bulkUpdateStatus = async (newStatus) => {
+    const ids = new Set(selectedTopics.map(t => String(t.id)));
+    if (!ids.size) return;
+    try {
+      const serverIds = [...ids].filter(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+      if (supabase && serverIds.length) {
+        const { error } = await supabase.from('syllabus_topics').update({ status: newStatus }).in('id', serverIds);
+        if (error) throw error;
+      }
+      setTopics(prev => prev.map(t => ids.has(String(t.id)) ? { ...t, status: newStatus } : t));
+      await reload();
+      setToast(`✅ ${ids.size} record${ids.size === 1 ? '' : 's'} marked as "${newStatus}" successfully.`);
+    } catch (e) {
+      console.error(e);
+      setToast('⚠️ ' + (e.message || 'Failed to update status.'));
+    }
+  };
+
   const handleDownloadExcel = () => {
+
     if (!hasClassSelected) {
       setToast('⚠️ Please select a Class or "All Classes" first to export to Excel.');
       return;
@@ -7294,7 +7313,7 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
                 {allVisibleSelected ? '(All visible)' : `of ${data.length} total`}
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               {!allVisibleSelected && (
                 <button
                   type="button"
@@ -7309,6 +7328,35 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
                   Select All {data.length}
                 </button>
               )}
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', background: 'rgba(255,255,255,0.12)', borderRadius: 8, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.25)' }}>
+                <span style={{ color: '#bfdbfe', fontSize: 11, fontWeight: 600, paddingLeft: 4 }}>📋 Status:</span>
+                {[
+                  { value: 'Done',        label: '✅ Done',        bg: '#16a34a', hover: '#15803d' },
+                  { value: 'In Progress', label: '⏳ In Progress', bg: '#d97706', hover: '#b45309' },
+                  { value: 'Not Done',    label: '❌ Not Done',    bg: '#dc2626', hover: '#b91c1c' },
+                ].map(btn => (
+                  <button
+                    key={btn.value}
+                    type="button"
+                    onClick={() => bulkUpdateStatus(btn.value)}
+                    title={`Mark all ${selectedTopicIds.size} selected as ${btn.value}`}
+                    style={{
+                      background: btn.bg,
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '5px 11px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => setSelectedTopicIds(new Set())}
