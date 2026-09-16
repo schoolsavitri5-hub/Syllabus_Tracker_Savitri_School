@@ -97,9 +97,73 @@ demoClasses.forEach((className,classIndex)=>{
 const statusValues=['Done','In Progress','Not Done']
 const normalizeText=(value='')=>String(value??'').trim().replace(/\s+/g,' ')
 const normalizeClassName=(value='')=>normalizeText(value)
+const normalizeHeaderLabel=(value='')=>String(value??'')
+  .replace(/<[^>]+>/g,' ')
+  .replace(/[*＊⭐●·]+/g,' ')
+  .replace(/[^a-zA-Z0-9]+/g,' ')
+  .trim()
+  .toLowerCase()
 const normalizeSectionName=(value='A')=>{
   const name=normalizeText(value).replace(/^section\s+/i,'')
-  return name||'A'
+  if(!name) return 'A'
+  if(/^[a-z]$/i.test(name)) return name.toUpperCase()
+  return name.split(' ').map(word=>word.charAt(0).toUpperCase()+word.slice(1).toLowerCase()).join(' ')
+}
+const sectionKey=(value='')=>normalizeSectionName(value).toLowerCase()
+const sectionsEqual=(a,b)=>sectionKey(a)===sectionKey(b)
+const isAllSectionsValue=(value='')=>{
+  const name=normalizeText(value).replace(/^section\s+/i,'')
+  return /^all$/i.test(name)
+}
+const formatSectionLabel=(value='')=>{
+  const name=normalizeSectionName(value)
+  return /^[A-Z]$/i.test(name)?`Section ${name}`:name
+}
+const collectSectionNames=({selectedClass,schoolClasses=[],dbClasses=[],topics=[]}={})=>{
+  const seen=new Set()
+  const names=[]
+  const add=(raw)=>{
+    if(raw==null||raw==='') return
+    const source=typeof raw==='object'?(raw.section_name||raw.name||raw.section||''):raw
+    const name=normalizeSectionName(source)
+    const key=sectionKey(name)
+    if(!key||seen.has(key)) return
+    seen.add(key)
+    names.push(name)
+  }
+  const classMatch=(n)=>normalizeClassName(n).toLowerCase()===normalizeClassName(selectedClass||'').toLowerCase()
+  if(selectedClass&&selectedClass!=='ALL'){
+    const fromSchool=schoolClasses.find(c=>classMatch(c.name))
+    ;(fromSchool?.sections||[]).forEach(add)
+    const fromDb=dbClasses.find(c=>classMatch(c.class_name||c.name))
+    ;(fromDb?.sections||[]).forEach(s=>add(s))
+  }
+  // Do not let a section from another class leak into this class's filter.
+  topics
+    .filter(t=>!selectedClass||selectedClass==='ALL'||classMatch(t.className))
+    .forEach(t=>add(t.section))
+  names.sort((a,b)=>{
+    const letterA=/^[A-Z]$/i.test(a)
+    const letterB=/^[A-Z]$/i.test(b)
+    if(letterA&&letterB) return a.localeCompare(b)
+    if(letterA) return -1
+    if(letterB) return 1
+    return a.localeCompare(b)
+  })
+  return names
+}
+const pickColumnValue=(row,aliases)=>{
+  const keys=Object.keys(row||{})
+  const wanted=aliases.map(normalizeHeaderLabel).filter(Boolean)
+  for(const key of keys){
+    const normalized=normalizeHeaderLabel(key)
+    if(!normalized) continue
+    if(wanted.some(alias=>normalized===alias||normalized.startsWith(alias+' '))){
+      const val=row[key]
+      if(val!==undefined&&String(val).trim()!=='') return String(val).trim()
+    }
+  }
+  return ''
 }
 const normalizeStatus=(value='')=>{
   const status=normalizeText(value).toLowerCase()
@@ -111,7 +175,7 @@ const mergeImportedClassSections=(currentClasses,importedRows)=>{
   const next=currentClasses.map(item=>({...item,sections:[...(item.sections||[])]}))
   ;(importedRows||[]).forEach(row=>{
     const className=normalizeClassName(row.className)
-    if(!className) return
+    if(!className||isAllSectionsValue(row.section)) return
     const section=normalizeSectionName(row.section)
     const classIndex=next.findIndex(item=>normalizeClassName(item.name).toLowerCase()===className.toLowerCase())
     if(classIndex===-1){
@@ -119,7 +183,7 @@ const mergeImportedClassSections=(currentClasses,importedRows)=>{
       return
     }
     const existing=next[classIndex]
-    if(!(existing.sections||[]).some(item=>normalizeSectionName(item).toLowerCase()===section.toLowerCase())){
+    if(!(existing.sections||[]).some(item=>sectionsEqual(item,section))){
       existing.sections=[...(existing.sections||[]),section]
     }
   })
@@ -1275,7 +1339,7 @@ function Shell({user,setUser}){
         <WelcomeMarquee />
         <main className="content">
           <Routes>
-            <Route path="/dashboard" element={hasUserPermission(user,'dashboard') ? <Dashboard user={user} currentSession={currentSession} sessions={sessions} onSwitchSession={switchSession} onClassSectionSync={syncImportedClassSections} onOpenCreateSession={() => setCreateSessionOpen(true)} onOpenResetStatus={(s) => setResetStatusTarget(s || sessions.find(x => x.id === currentSession) || { id: currentSession, name: currentSession })} /> : <Navigate to="/profile"/>} />
+            <Route path="/dashboard" element={hasUserPermission(user,'dashboard') ? <Dashboard user={user} currentSession={currentSession} sessions={sessions} schoolClasses={schoolClasses} onSwitchSession={switchSession} onClassSectionSync={syncImportedClassSections} onOpenCreateSession={() => setCreateSessionOpen(true)} onOpenResetStatus={(s) => setResetStatusTarget(s || sessions.find(x => x.id === currentSession) || { id: currentSession, name: currentSession })} /> : <Navigate to="/profile"/>} />
             <Route path="/classes" element={hasUserPermission(user,'classes') ? <Classes schoolClasses={schoolClasses} setSchoolClasses={setSchoolClasses} currentSession={currentSession} /> : <Navigate to="/dashboard"/>} />
             <Route path="/syllabus" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} onClassSectionSync={syncImportedClassSections} /> : <Navigate to="/dashboard"/>} />
             <Route path="/syllabus/:subject" element={hasUserPermission(user,'syllabus_view') ? <Syllabus user={user} schoolClasses={schoolClasses} currentSession={currentSession} onClassSectionSync={syncImportedClassSections} /> : <Navigate to="/dashboard"/>} />
@@ -1429,7 +1493,7 @@ function Header({title,user,sidebarOpen,onToggleSidebar,dark,setDark,setUser,ses
     </div>
     <div className="header-right">
       <div className="date"><b>{now.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</b><small>{now.toLocaleTimeString('en-IN')}</small></div>
-      
+
       {/* Universal Academic Session Dropdown */}
       <div className="session-selector-wrap" ref={sessionRef}>
         <button
@@ -1544,7 +1608,7 @@ function Filters({
       <select value={selectedSection} onChange={e=>setSelectedSection(e.target.value)} aria-label="Select Section">
         <option value="ALL">All Sections</option>
         <option value="">Select Section</option>
-        {sectionOpts.map(s=>{const val=String(s).replace(/^section\s+/i,'').trim();return <option key={s} value={val}>Section {val}</option>})}
+        {sectionOpts.map(s=>{const val=normalizeSectionName(s);return <option key={val} value={val}>{formatSectionLabel(val)}</option>})}
       </select>
       {examOptions && examOptions.length > 0 && (
         <select 
@@ -1618,7 +1682,7 @@ function CustomChartTooltip({ active, payload, isClass, examLabel }) {
   return null;
 }
 
-function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSession, onClassSectionSync, onOpenCreateSession, onOpenResetStatus }) {
+function Dashboard({ user, currentSession = '2026-27', sessions = [], schoolClasses = [], onSwitchSession, onClassSectionSync, onOpenCreateSession, onOpenResetStatus }) {
   const schoolProfile = useSchoolProfile();
   const { avatarImg, avatarColor } = useAvatarState(user);
   const { topics, dbClasses, reload, setTopics } = useTopics(currentSession),
@@ -1658,19 +1722,16 @@ function Dashboard({ user, currentSession = '2026-27', sessions = [], onSwitchSe
   },[topics,dbClasses]);
 
   const availableSections=useMemo(()=>{
-    const set=new Set();
-    let refTopics=topics;
-    if(selectedClass && selectedClass!=='ALL'){
-      refTopics=topics.filter(t=>t.className===selectedClass);
-      const foundClass=dbClasses?.find(c=>c.class_name===selectedClass);
-      if(foundClass?.sections)foundClass.sections.forEach(s=>set.add(String(s.section_name).replace(/^section\s+/i,'').trim().toUpperCase()));
-    }
-    refTopics.forEach(t=>{if(t.section)set.add(String(t.section).replace(/^section\s+/i,'').trim().toUpperCase())});
-    if(set.size===0){set.add('A');set.add('B')}
-    return Array.from(set).sort();
-  },[topics,dbClasses,selectedClass]);
+    const names=collectSectionNames({
+      selectedClass,
+      schoolClasses,
+      dbClasses,
+      topics: selectedClass && selectedClass!=='ALL' ? topics.filter(t=>t.className===selectedClass) : topics
+    });
+    return names.length?names:['A','B'];
+  },[topics,dbClasses,selectedClass,schoolClasses]);
 
-  const normSec=s=>(s||'').replace(/^section\s+/i,'').trim().toUpperCase();
+  const normSec=s=>sectionKey(s);
 
   const isAllClass=!selectedClass||selectedClass==='ALL';
 
@@ -2255,7 +2316,7 @@ async function downloadSampleExcelTemplate() {
   const headersConfig = [
     { title: 'S.No.', required: true, key: 'sno', width: 8 },
     { title: 'Class', required: true, key: 'className', width: 14 },
-    { title: 'Section', required: true, key: 'section', width: 10 },
+    { title: 'Section', required: true, key: 'section', width: 14 },
     { title: 'Subject', required: true, key: 'subject', width: 22 },
     { title: 'Month / Term', required: true, key: 'month', width: 18 },
     { title: 'Assessment / Exam', required: true, key: 'assessment', width: 22 },
@@ -2417,7 +2478,7 @@ async function downloadSampleExcelTemplate() {
   const guideEntries = [
     { col: 'S.No.', req: 'Yes', vals: '1, 2, 3...', desc: 'Sequential serial number (No UUID/ID needed).' },
     { col: 'Class', req: 'Yes (Dropdown)', vals: 'Nursery to Class 12 (Select from Dropdown)', desc: 'Class / Grade level of students.' },
-    { col: 'Section', req: 'Optional (Dropdown)', vals: 'A, B, C, Science, Commerce, Arts, All', desc: 'Section / Stream identifier (defaults to A).' },
+    { col: 'Section', req: 'Optional (Dropdown)', vals: 'A, B, C, Science, Commerce, Arts, All', desc: 'If this section already exists for the class, Excel rows are added there. If it does not exist, a new section is created with the same name (Arts, Science, A, etc.). All = every existing section of that class.' },
     { col: 'Subject', req: 'Yes', vals: 'English, Hindi, Mathematics, Science, Physics, etc.', desc: 'Name of the subject.' },
     { col: 'Month / Term', req: 'Yes (Dropdown)', vals: 'Apr - July, Aug - Sep, Oct - Dec, Jan - Mar, etc.', desc: 'Academic period or month (Select from Dropdown).' },
     { col: 'Assessment / Exam', req: 'Recommended (Dropdown)', vals: 'Nursery-8th: [PA 1, Half Yearly, PA 2, Annual] | 9th-12th: [UT 1, UT 2, Half Yearly, UT 3, UT 4]', desc: 'Exam pattern tag for analytics (Select from Dropdown).' },
@@ -2457,10 +2518,32 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
   const preparedRows = rows.map(row => ({
     ...row,
     className: normalizeClassName(row.className || 'Class 1'),
-    section: normalizeSectionName(row.section),
+    section: row.section,
     subject: normalizeText(row.subject || 'General'),
     status: normalizeStatus(row.status)
   }));
+
+  const existingNamesForClass = (className, sectionMap) => {
+    if (sectionMap && sectionMap.size) return [...sectionMap.values()].map(item => item.name);
+    const key = normalizeClassName(className).toLowerCase();
+    const fromDb = (dbClasses || []).find(c => normalizeClassName(c.class_name || c.name).toLowerCase() === key);
+    const names = [];
+    const seen = new Set();
+    ;(fromDb?.sections || []).forEach(s => {
+      const name = normalizeSectionName(s.section_name || s);
+      const k = sectionKey(name);
+      if (!seen.has(k)) { seen.add(k); names.push(name); }
+    });
+    return names;
+  };
+
+  const expandRowSections = (row, existingNames) => {
+    if (isAllSectionsValue(row.section)) {
+      const targets = existingNames.length ? existingNames : ['A'];
+      return targets.map(section => ({ ...row, section: normalizeSectionName(section) }));
+    }
+    return [{ ...row, section: normalizeSectionName(row.section) }];
+  };
 
   if (supabase) {
     const cRes = await supabase.from('classes').select('id, class_name');
@@ -2472,45 +2555,64 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
     const sectionsByClass = new Map();
     const replacedScopes = new Set();
 
+    const loadSections = async (classId) => {
+      if (sectionsByClass.has(classId)) return sectionsByClass.get(classId);
+      const { data, error } = await supabase.from('sections').select('id, section_name').eq('class_id', classId);
+      if (error) throw error;
+      const sectionMap = new Map((data || []).map(section => {
+        const name = normalizeSectionName(section.section_name);
+        return [sectionKey(name), { id: section.id, name }];
+      }));
+      sectionsByClass.set(classId, sectionMap);
+      return sectionMap;
+    };
+
     const getOrCreateSection = async (classId, sectionName) => {
-      if (!sectionsByClass.has(classId)) {
-        const { data, error } = await supabase.from('sections').select('id, section_name').eq('class_id', classId);
-        if (error) throw error;
-        sectionsByClass.set(classId, new Map((data || []).map(section => [normalizeSectionName(section.section_name).toLowerCase(), section.id])));
-      }
-      const sectionMap = sectionsByClass.get(classId);
-      const sectionKey = normalizeSectionName(sectionName).toLowerCase();
-      if (sectionMap.has(sectionKey)) return sectionMap.get(sectionKey);
+      const sectionMap = await loadSections(classId);
+      const displayName = normalizeSectionName(sectionName);
+      const key = sectionKey(displayName);
+      if (sectionMap.has(key)) return sectionMap.get(key).id;
 
       const { data: newSection, error: sectionError } = await supabase
         .from('sections')
-        .insert({ class_id: classId, section_name: normalizeSectionName(sectionName) })
-        .select('id')
+        .insert({ class_id: classId, section_name: displayName })
+        .select('id, section_name')
         .single();
-      if (sectionError) throw sectionError;
+      if (sectionError) {
+        const { data: existing, error: refetchError } = await supabase.from('sections').select('id, section_name').eq('class_id', classId);
+        if (refetchError) throw sectionError;
+        const match = (existing || []).find(section => sectionsEqual(section.section_name, displayName));
+        if (match) {
+          sectionMap.set(key, { id: match.id, name: normalizeSectionName(match.section_name) });
+          return match.id;
+        }
+        throw sectionError;
+      }
       const sectionId = newSection?.id;
-      if (!sectionId) throw new Error(`Could not create Section ${sectionName}.`);
-      sectionMap.set(sectionKey, sectionId);
+      if (!sectionId) throw new Error(`Could not create Section ${displayName}.`);
+      sectionMap.set(key, { id: sectionId, name: normalizeSectionName(newSection.section_name || displayName) });
       return sectionId;
     };
 
+    const expandedRows = [];
     for (const row of preparedRows) {
-      let subjectId = null;
-      let classId = null;
-
-      {
-        const cKey = normalizeClassName(row.className).toLowerCase();
-        if (classMap.has(cKey)) {
-          classId = classMap.get(cKey);
-        } else {
-          const grp = getClassGroup(row.className) === 'senior' ? 'SENIOR' : getClassGroup(row.className) === 'preprimary' ? 'PREPRIMARY' : 'PRIMARY';
-          const { data: newClass, error: classError } = await supabase.from('classes').insert({ class_name: row.className, class_group: grp }).select('id').single();
-          if (classError) throw classError;
-          classId = newClass?.id;
-          if (!classId) throw new Error(`Could not create Class ${row.className}.`);
-          classMap.set(cKey, classId);
-        }
+      const cKey = normalizeClassName(row.className).toLowerCase();
+      let classId = classMap.get(cKey);
+      if (!classId) {
+        const grp = getClassGroup(row.className) === 'senior' ? 'SENIOR' : getClassGroup(row.className) === 'preprimary' ? 'PREPRIMARY' : 'PRIMARY';
+        const { data: newClass, error: classError } = await supabase.from('classes').insert({ class_name: row.className, class_group: grp }).select('id').single();
+        if (classError) throw classError;
+        classId = newClass?.id;
+        if (!classId) throw new Error(`Could not create Class ${row.className}.`);
+        classMap.set(cKey, classId);
       }
+      const sectionMap = await loadSections(classId);
+      expandRowSections(row, existingNamesForClass(row.className, sectionMap)).forEach(item => expandedRows.push({ ...item, classId }));
+    }
+
+    for (const row of expandedRows) {
+      let subjectId = null;
+      const classId = row.classId;
 
       {
         const sKey = normalizeText(row.subject).toLowerCase();
@@ -2526,28 +2628,9 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
       }
 
       // Excel is the source of truth for the uploaded class/section/subject.
-      // Clear a subject once before inserting its uploaded rows, so stale practical
-      // entries cannot appear in the Practical tab or A4 reports.
+      // Reuse an existing matching section, or create one with the Excel section name.
       const sectionName = normalizeSectionName(row.section);
       const sectionId = await getOrCreateSection(classId, sectionName);
-      const scopeKey = `${classId}:${subjectId}:${sectionId}`;
-      if (classId && subjectId && !replacedScopes.has(scopeKey)) {
-        let deleteQuery = supabase
-          .from('syllabus_topics')
-          .delete()
-          .eq('class_id', classId)
-          .eq('subject_id', subjectId);
-        // Legacy Class 9-A records were saved without section_id, so include those
-        // only while replacing Section A. Properly mapped other sections stay safe.
-        if (sectionId) {
-          deleteQuery = sectionName === 'A'
-            ? deleteQuery.or(`section_id.eq.${sectionId},section_id.is.null`)
-            : deleteQuery.eq('section_id', sectionId);
-        }
-        const { error: deleteError } = await deleteQuery;
-        if (deleteError) throw deleteError;
-        replacedScopes.add(scopeKey);
-      }
 
       const payload = {
         month: row.month || 'Apr - July',
@@ -2568,16 +2651,19 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
       if (insertError) throw insertError;
       createdCount++;
     }
+    onClassSectionSync(expandedRows);
     await reload();
+    return { updatedCount, createdCount, total: expandedRows.length };
   } else {
+    const expandedRows = preparedRows.flatMap(row => expandRowSections(row, existingNamesForClass(row.className)));
     setTopics(prev => {
-      const importedScopes = new Set(preparedRows.map(r => `${r.className.toLowerCase()}::${r.section.toLowerCase()}::${r.subject.toLowerCase()}`));
-      const copy = prev.filter(t => !importedScopes.has(`${(t.className || '').toLowerCase()}::${(t.section || 'A').toLowerCase()}::${(t.subject || '').toLowerCase()}`));
-      preparedRows.forEach(r => {
+      const importedScopes = new Set(expandedRows.map(r => `${r.className.toLowerCase()}::${sectionKey(r.section)}::${r.subject.toLowerCase()}`));
+      const copy = prev.filter(t => !importedScopes.has(`${(t.className || '').toLowerCase()}::${sectionKey(t.section || 'A')}::${(t.subject || '').toLowerCase()}`));
+      expandedRows.forEach(r => {
         copy.push({
           id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           className: r.className || 'Class 1',
-          section: r.section || 'A',
+          section: normalizeSectionName(r.section),
           group: getClassGroup(r.className || 'Class 1'),
           subject: r.subject || 'General',
           month: r.month || 'Apr - July',
@@ -2594,9 +2680,10 @@ async function applyExcelUpdates(rows, dbClasses, reload, setTopics, onClassSect
       });
       return copy;
     });
+    onClassSectionSync(expandedRows);
+    return { updatedCount, createdCount, total: expandedRows.length };
   }
 
-  onClassSectionSync(preparedRows);
   return { updatedCount, createdCount, total: preparedRows.length };
 }
 
@@ -2617,28 +2704,19 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
       const parsedRows = [];
 
       for (const sheet of book.SheetNames) {
-        const rawRows = XLSX.utils.sheet_to_json(book.Sheets[sheet], { defval: '' });
+        if (/instruction|guideline|readme/i.test(sheet)) continue;
+        const rawRows = XLSX.utils.sheet_to_json(book.Sheets[sheet], { defval: '', raw: false });
         for (const r of rawRows) {
-          const keys = Object.keys(r);
-          const getVal = (possibleKeys) => {
-            for (const pk of possibleKeys) {
-              const cleanPk = pk.replace(/[\*\s]+/g, ' ').trim().toLowerCase();
-              const found = keys.find(k => {
-                const cleanK = k.replace(/[\*\s]+/g, ' ').trim().toLowerCase();
-                return cleanK === cleanPk || cleanK.startsWith(cleanPk);
-              });
-              if (found && r[found] !== undefined && String(r[found]).trim() !== '') return String(r[found]).trim();
-            }
-            return '';
-          };
+          const getVal = (possibleKeys) => pickColumnValue(r, possibleKeys);
 
           const id = getVal(['id', 'topic id', 'topic_id']);
           const className = normalizeClassName(getVal(['class', 'class name', 'classname', 'grade']) || (sheet.toLowerCase().startsWith('class') ? sheet : 'Class 1'));
-          const section = normalizeSectionName(getVal(['section', 'sec']));
-          const subject = normalizeText(getVal(['subject', 'subject name', 'subject_name']) || sheet);
+          const sectionRaw = getVal(['section', 'section name', 'stream']);
+          const section = isAllSectionsValue(sectionRaw) ? 'All' : normalizeSectionName(sectionRaw);
+          const subject = normalizeText(getVal(['subject', 'subject name', 'subject_name']) || ( /syllabus|template/i.test(sheet) ? '' : sheet ));
           const month = getVal(['month', 'month / term', 'month/term', 'term', 'month_term']) || 'Apr - July';
           const assessment = getVal(['assessment', 'assessment / exam', 'exam', 'assessment_en', 'exam pattern', 'exam_pattern']) || '';
-          const chapter = getVal(['chapter', 'chapter / title', 'chapter_title', 'title', 'unit_chapter_en', 'unit / chapter', 'name']);
+          const chapter = getVal(['chapter', 'chapter / title', 'chapter_title', 'unit_chapter_en', 'unit / chapter']);
           const hindi = getVal(['hindi', 'hindi title', 'hindi_title', 'unit_chapter_hi', 'विषय हिन्दी', 'hindi topic']);
           const topic = getVal(['detailed syllabus / topic', 'detailed syllabus', 'syllabus', 'topic', 'topic_en', 'topic english', 'learning objectives']);
           const practical = getVal(['practical', 'practical / lab work', 'practical/lab work', 'lab work', 'practicals', 'experiment', 'lab experiment', 'activity']);
@@ -2676,6 +2754,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
       const notDoneCount = parsedRows.filter(r => r.status === 'Not Done').length;
       const subjectsList = [...new Set(parsedRows.map(r => r.subject))];
       const classesList = [...new Set(parsedRows.map(r => r.className))];
+      const sectionsList = [...new Set(parsedRows.map(r => r.section))];
 
       setReport({
         valid: true,
@@ -2687,7 +2766,8 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
           inProgress: progCount,
           notDone: notDoneCount,
           subjects: subjectsList,
-          classes: classesList
+          classes: classesList,
+          sections: sectionsList
         }
       });
     } catch (err) {
@@ -2813,6 +2893,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
 
             <div style={{ fontSize: 11, color: '#475569', display: 'grid', gap: 4, marginBottom: 12 }}>
               <div><b>Classes Detected:</b> {report.summary.classes.join(', ')}</div>
+              <div><b>Sections Detected:</b> {report.summary.sections?.length ? report.summary.sections.join(', ') : 'All'}</div>
               <div><b>Subjects Detected:</b> {report.summary.subjects.slice(0, 8).join(', ')}{report.summary.subjects.length > 8 ? ` +${report.summary.subjects.length - 8} more` : ''}</div>
             </div>
 
@@ -2821,6 +2902,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
                 <thead>
                   <tr style={{ background: '#f1f5f9' }}>
                     <th style={{ padding: '6px 8px' }}>Class</th>
+                    <th style={{ padding: '6px 8px' }}>Section</th>
                     <th style={{ padding: '6px 8px' }}>Subject</th>
                     <th style={{ padding: '6px 8px' }}>Chapter / Title</th>
                     <th style={{ padding: '6px 8px' }}>Status</th>
@@ -2830,6 +2912,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
                   {report.rows.slice(0, 4).map((r, i) => (
                     <tr key={i}>
                       <td style={{ padding: '6px 8px' }}><b>{r.className}</b></td>
+                      <td style={{ padding: '6px 8px' }}><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>{r.section || 'All'}</span></td>
                       <td style={{ padding: '6px 8px' }}>{r.subject}</td>
                       <td style={{ padding: '6px 8px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.chapter}</td>
                       <td style={{ padding: '6px 8px' }}><Status value={r.status}/></td>
@@ -2852,7 +2935,7 @@ function UploadSyllabusModal({ close, dbClasses, reload, setTopics, onSuccess, o
   );
 }
 
-function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, schoolClasses = [], reload, setTopics, onSuccess }) {
+function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, schoolClasses = [], reload, setTopics, onClassSectionSync=()=>{}, onSuccess }) {
   const classList = schoolClasses.length ? schoolClasses.map(c => c.name) : [
     'Nursery', 'LKG', 'UKG',
     'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8',
@@ -2951,6 +3034,7 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
       };
 
       setTopics(prev => [newItem, ...prev]);
+      onClassSectionSync([{ className: formData.className, section: formData.section }]);
 
       if (reload) await reload();
       onSuccess?.('🎉 Congratulations! New syllabus record added successfully!');
@@ -3005,7 +3089,7 @@ function AddSyllabusModal({ defaultClass, defaultSubject, close, dbClasses, scho
               required
             >
               <option value="">-- Select Section --</option>
-              {sectionList.map(s => <option key={s} value={s}>Section {s}</option>)}
+              {sectionList.map(s => <option key={s} value={s}>{formatSectionLabel(s)}</option>)}
             </select>
           </label>
 
@@ -3303,7 +3387,7 @@ function EditSyllabusModal({ topic, close, dbClasses, schoolClasses = [], reload
               onChange={e => setFormData({ ...formData, section: e.target.value })}
               required
             >
-              {sectionList.map(s => <option key={s} value={s}>Section {s}</option>)}
+              {sectionList.map(s => <option key={s} value={s}>{formatSectionLabel(s)}</option>)}
             </select>
           </label>
 
@@ -6815,15 +6899,19 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
         isAllClass = className === 'ALL',
         classTopics = !hasClassSelected ? [] : (isAllClass ? groupTopics : groupTopics.filter(x => x.className === className)),
         
-        // Dynamic section calculation synced with active schoolClasses
-        targetClassObj = schoolClasses.find(x => x.name === className),
-        rawSections = isAllClass
-          ? [...new Set(classTopics.map(x => x.section).filter(Boolean))]
-          : ((targetClassObj && targetClassObj.sections) ? targetClassObj.sections : [...new Set(classTopics.map(x => x.section).filter(Boolean))]),
-        availableSections = (rawSections.length ? rawSections : ['A', 'B']).sort(),
+        // A configured list must never hide a section just imported for this class.
+        availableSections = (()=>{
+          const names=collectSectionNames({
+            selectedClass: isAllClass ? 'ALL' : className,
+            schoolClasses,
+            dbClasses,
+            topics: classTopics
+          });
+          return names.length ? names : ['A', 'B'];
+        })(),
         hasSectionSelected = Boolean(sectionName),
         isAllSection = sectionName === 'ALL',
-        sectionTopics = !hasSectionSelected ? [] : (isAllSection ? classTopics : classTopics.filter(x => (x.section || 'A') === sectionName)),
+        sectionTopics = !hasSectionSelected ? [] : (isAllSection ? classTopics : classTopics.filter(x => sectionsEqual(x.section || 'A', sectionName))),
 
         availableSubjects = (hasClassSelected && hasSectionSelected) ? [...new Set(sectionTopics.map(x => x.subject).filter(Boolean))].sort() : [],
         hasSubjectSelected = Boolean(subjectName),
@@ -7011,7 +7099,7 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
       <select value={sectionName} onChange={e=>setSectionName(e.target.value)} aria-label="Filter by section" disabled={!hasClassSelected}>
         <option value="">Select Section</option>
         <option value="ALL">All Sections</option>
-        {availableSections.map(x=><option key={x} value={x}>Section {x}</option>)}
+        {availableSections.map(x=><option key={x} value={x}>{formatSectionLabel(x)}</option>)}
       </select>
       <select value={subjectName} onChange={e=>setSubjectName(e.target.value)} aria-label="Filter by subject" disabled={!hasClassSelected || !hasSectionSelected}>
         <option value="">Select Subject</option>
@@ -7315,6 +7403,7 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
         dbClasses={dbClasses}
         reload={reload}
         setTopics={setTopics}
+        onClassSectionSync={onClassSectionSync}
         onSuccess={(msg)=>setToast(msg)}
       />
     )}
@@ -7502,7 +7591,7 @@ function Tracker({ type, schoolClasses = [], user, currentSession = '2026-27' })
         <select value={sectionName} onChange={e => { setSectionName(e.target.value); setSubjectName(''); }} aria-label="Filter by section">
           <option value="">All Sections</option>
           <option value="ALL">All Sections</option>
-          {availableSections.map(x => <option key={x} value={x}>Section {x}</option>)}
+          {availableSections.map(x => <option key={x} value={x}>{formatSectionLabel(x)}</option>)}
         </select>
 
         <select value={subjectName} onChange={e => setSubjectName(e.target.value)} aria-label="Filter by subject">
