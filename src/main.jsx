@@ -1307,16 +1307,56 @@ function Shell({user,setUser}){
           })}
         </nav>
         <div className="side-bottom">
-          <div className="mini-user">
-            {avatarImg ? (
-              <img src={avatarImg} alt={user.name} className="avatar-img" />
-            ) : (
-              <div className="avatar" style={{ background: avatarColor, color: '#ffffff' }}>{user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
-            )}
-            <div>
-              <b>{user.name}</b>
-              <small>{user.role}</small>
+          <div className="mini-user" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0, flex: 1 }}>
+              {avatarImg ? (
+                <img src={avatarImg} alt={user.name} className="avatar-img" />
+              ) : (
+                <div className="avatar" style={{ background: avatarColor, color: '#ffffff' }}>{user.name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+              )}
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <b style={{ display: 'block', fontSize: 13, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</b>
+                <small style={{ display: 'block', fontSize: 10, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{user.role}</small>
+              </div>
             </div>
+            <button
+              className="side-logout-btn"
+              onClick={async () => {
+                if (supabase) await supabase.auth.signOut().catch(() => {});
+                setUser(null);
+              }}
+              title="Logout / Sign Out"
+              aria-label="Logout"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                padding: '6px 10px',
+                borderRadius: 7,
+                background: 'rgba(239, 68, 68, 0.2)',
+                color: '#fca5a5',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 600,
+                transition: 'all 0.2s ease',
+                flexShrink: 0
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#dc2626';
+                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.borderColor = '#dc2626';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                e.currentTarget.style.color = '#fca5a5';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+              }}
+            >
+              <Icons.LogOut size={13} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </aside>
