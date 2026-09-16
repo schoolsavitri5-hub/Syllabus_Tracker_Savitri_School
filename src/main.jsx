@@ -6911,7 +6911,9 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
         [studentSyllabusOpen,setStudentSyllabusOpen]=useState(false),
         [softBoardOpen,setSoftBoardOpen]=useState(false),
         [editingTopic,setEditingTopic]=useState(null),
-        [pendingDeleteTopic,setPendingDeleteTopic]=useState(null);
+        [pendingDeleteTopic,setPendingDeleteTopic]=useState(null),
+        [selectedTopicIds,setSelectedTopicIds]=useState(new Set()),
+        [pendingBulkDelete,setPendingBulkDelete]=useState(false);
 
   const isAllGroup = group === 'all';
   const groupClassObjs = isAllGroup ? schoolClasses : schoolClasses.filter(x => (x.group || getClassGroup(x.name)) === group),
@@ -6977,6 +6979,17 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
         active = eligible.filter(x => x.status === 'In Progress').length,
         progress = eligible.length ? Math.round(done / eligible.length * 100) : 0;
 
+  const selectedTopics = data.filter(topic => selectedTopicIds.has(String(topic.id)));
+  const allVisibleSelected = data.length > 0 && data.every(topic => selectedTopicIds.has(String(topic.id)));
+
+  useEffect(() => {
+    const visibleIds = new Set(data.map(topic => String(topic.id)));
+    setSelectedTopicIds(previous => {
+      const next = new Set([...previous].filter(id => visibleIds.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [data]);
+
   const chooseGroup = g => {
     setGroup(g);
     setClassName('');
@@ -7015,6 +7028,25 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
     } catch(e) {
       console.error(e);
       setToast('⚠️ ' + (e.message || 'Failed to delete record.'));
+    }
+  };
+
+  const removeSelected = async () => {
+    const ids = new Set(selectedTopics.map(topic => String(topic.id)));
+    if (!ids.size) return;
+    try {
+      const serverIds = [...ids].filter(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+      if (supabase && serverIds.length) {
+        const { error } = await supabase.from('syllabus_topics').delete().in('id', serverIds);
+        if (error) throw error;
+      }
+      setTopics(previous => previous.filter(topic => !ids.has(String(topic.id))));
+      setSelectedTopicIds(new Set());
+      await reload();
+      setToast(`🗑️ ${ids.size} selected syllabus record${ids.size === 1 ? '' : 's'} deleted successfully.`);
+    } catch (e) {
+      console.error(e);
+      setToast('⚠️ ' + (e.message || 'Failed to delete selected records.'));
     }
   };
 
@@ -7242,6 +7274,71 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
           </div>
         </div>
 
+        {selectedTopicIds.size > 0 && (
+          <div style={{
+            position: 'sticky', top: 8, zIndex: 50,
+            background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)',
+            borderRadius: 12, padding: '12px 20px',
+            display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+            boxShadow: '0 4px 20px rgba(29,78,216,0.35)',
+            marginBottom: 12, border: '1px solid #3b82f6'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+              <div style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.2)', borderRadius: 8, display: 'grid', placeItems: 'center' }}>
+                <Icons.CheckSquare size={18} color="#ffffff" />
+              </div>
+              <span style={{ color: '#ffffff', fontWeight: 700, fontSize: 14 }}>
+                {selectedTopicIds.size} record{selectedTopicIds.size === 1 ? '' : 's'} selected
+              </span>
+              <span style={{ color: '#bfdbfe', fontSize: 12 }}>
+                {allVisibleSelected ? '(All visible)' : `of ${data.length} total`}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {!allVisibleSelected && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTopicIds(new Set(data.map(t => String(t.id))))}
+                  style={{
+                    background: 'rgba(255,255,255,0.15)', color: '#ffffff',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    padding: '6px 14px', borderRadius: 7, fontSize: 12,
+                    fontWeight: 600, cursor: 'pointer'
+                  }}
+                >
+                  Select All {data.length}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedTopicIds(new Set())}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', color: '#bfdbfe',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  padding: '6px 14px', borderRadius: 7, fontSize: 12,
+                  fontWeight: 600, cursor: 'pointer'
+                }}
+              >
+                Clear Selection
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingBulkDelete(true)}
+                style={{
+                  background: '#dc2626', color: '#ffffff',
+                  border: '1px solid #b91c1c',
+                  padding: '8px 18px', borderRadius: 7, fontSize: 13,
+                  fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  boxShadow: '0 2px 8px rgba(220,38,38,0.4)'
+                }}
+              >
+                <Icons.Trash2 size={15} /> Delete {selectedTopicIds.size} Selected
+              </button>
+            </div>
+          </div>
+        )}
+
         <section className="card">
           <CardTitle
             title={exam==='ALL'?'Complete month-wise syllabus':`${exam} eligible syllabus`}
@@ -7251,6 +7348,21 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
             <table className="wide">
               <thead>
                 <tr>
+                  <th style={{ width: 36, textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      title={allVisibleSelected ? 'Deselect all' : 'Select all visible'}
+                      checked={allVisibleSelected}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedTopicIds(new Set(data.map(t => String(t.id))));
+                        } else {
+                          setSelectedTopicIds(new Set());
+                        }
+                      }}
+                      style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#1d4ed8' }}
+                    />
+                  </th>
                   <th>Class</th>
                   <th>Month / Term</th>
                   <th>Subject</th>
@@ -7261,8 +7373,25 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
                 </tr>
               </thead>
               <tbody>
-                {data.map(x=>(
-                  <tr key={x.id} className={'row-'+x.status.toLowerCase().replace(/\s+/g,'-')}>
+                {data.map(x=>{
+                  const isChecked = selectedTopicIds.has(String(x.id));
+                  return (
+                  <tr key={x.id} className={'row-'+x.status.toLowerCase().replace(/\s+/g,'-')} style={isChecked ? { background: '#eff6ff', outline: '2px solid #bfdbfe' } : {}}>
+                    <td style={{ textAlign: 'center', width: 36 }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={e => {
+                          setSelectedTopicIds(prev => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(String(x.id));
+                            else next.delete(String(x.id));
+                            return next;
+                          });
+                        }}
+                        style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#1d4ed8' }}
+                      />
+                    </td>
                     <td><b>{x.className}</b>{x.section && <><br/><small style={{color:'#2563eb',fontWeight:600}}>Sec {x.section}</small></>}</td>
                     <td><span className="badge">{x.month}</span>{x.assessment&&<><br/><small style={{color:'#72839a'}}>{x.assessment}</small></>}</td>
                     <td><b>{x.subject}</b></td>
@@ -7334,7 +7463,8 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -7394,6 +7524,47 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
         close={() => setPendingDeleteTopic(null)}
         onConfirm={() => remove(pendingDeleteTopic)}
       />
+    )}
+
+    {pendingBulkDelete && (
+      <div className="modal-backdrop">
+        <div className="modal" style={{ maxWidth: 440 }}>
+          <button className="modal-close" onClick={() => setPendingBulkDelete(false)}><Icons.X/></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+            <div style={{ width: 48, height: 48, background: '#fef2f2', color: '#dc2626', borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <Icons.Trash2 size={24} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 17, margin: 0, color: '#0f172a' }}>Delete Selected Records</h2>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0' }}>This action cannot be undone</p>
+            </div>
+          </div>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Icons.AlertTriangle size={16} color="#dc2626" />
+              <span style={{ fontWeight: 700, color: '#dc2626', fontSize: 13 }}>Warning: Permanent Deletion</span>
+            </div>
+            <p style={{ fontSize: 13, color: '#7f1d1d', margin: 0, lineHeight: 1.5 }}>
+              You are about to permanently delete <strong>{selectedTopicIds.size} syllabus record{selectedTopicIds.size === 1 ? '' : 's'}</strong>.
+              This will remove them from the database and cannot be recovered.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button className="secondary" type="button" onClick={() => setPendingBulkDelete(false)}>Cancel</button>
+            <button
+              className="primary"
+              type="button"
+              onClick={async () => {
+                setPendingBulkDelete(false);
+                await removeSelected();
+              }}
+              style={{ background: '#dc2626', border: '1px solid #b91c1c', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+            >
+              <Icons.Trash2 size={15} /> Delete {selectedTopicIds.size} Records
+            </button>
+          </div>
+        </div>
+      </div>
     )}
 
     {addOpen && (
