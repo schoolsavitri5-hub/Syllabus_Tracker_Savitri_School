@@ -7412,14 +7412,39 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
                       )}
                     </td>
                     <td>
-                      <select
-                        className={'status-select status-'+x.status.toLowerCase().replace(/\s+/g,'-')}
-                        value={x.status}
-                        onChange={e=>updateStatus(x,e.target.value)}
-                      >
-                        {statusValues.map(s=><option key={s}>{s}</option>)}
-                      </select>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 120 }}>
+                        {[
+                          { value: 'Done',        label: '✅ Done',        bg: x.status === 'Done'        ? '#16a34a' : '#f0fdf4', color: x.status === 'Done'        ? '#ffffff' : '#15803d', border: '#bbf7d0' },
+                          { value: 'In Progress', label: '⏳ In Progress', bg: x.status === 'In Progress' ? '#d97706' : '#fffbeb', color: x.status === 'In Progress' ? '#ffffff' : '#b45309', border: '#fde68a' },
+                          { value: 'Not Done',    label: '❌ Not Done',    bg: x.status === 'Not Done'    ? '#dc2626' : '#fef2f2', color: x.status === 'Not Done'    ? '#ffffff' : '#b91c1c', border: '#fecaca' },
+                        ].map(btn => (
+                          <button
+                            key={btn.value}
+                            type="button"
+                            onClick={() => x.status !== btn.value && updateStatus(x, btn.value)}
+                            title={`Mark as ${btn.value}`}
+                            style={{
+                              background: btn.bg,
+                              color: btn.color,
+                              border: `1.5px solid ${btn.border}`,
+                              borderRadius: 7,
+                              padding: '5px 10px',
+                              fontSize: 11,
+                              fontWeight: x.status === btn.value ? 800 : 600,
+                              cursor: x.status === btn.value ? 'default' : 'pointer',
+                              textAlign: 'left',
+                              whiteSpace: 'nowrap',
+                              boxShadow: x.status === btn.value ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
+                              transition: 'all 0.15s ease',
+                              opacity: x.status === btn.value ? 1 : 0.85,
+                            }}
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
                     </td>
+
                     <td>
                       <div className="action-buttons" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button
