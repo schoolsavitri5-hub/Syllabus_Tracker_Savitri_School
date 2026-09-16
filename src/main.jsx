@@ -7527,44 +7527,13 @@ function Syllabus({ user, schoolClasses = [], currentSession = '2026-27', onClas
     )}
 
     {pendingBulkDelete && (
-      <div className="modal-backdrop">
-        <div className="modal" style={{ maxWidth: 440 }}>
-          <button className="modal-close" onClick={() => setPendingBulkDelete(false)}><Icons.X/></button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-            <div style={{ width: 48, height: 48, background: '#fef2f2', color: '#dc2626', borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              <Icons.Trash2 size={24} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: 17, margin: 0, color: '#0f172a' }}>Delete Selected Records</h2>
-              <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0' }}>This action cannot be undone</p>
-            </div>
-          </div>
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Icons.AlertTriangle size={16} color="#dc2626" />
-              <span style={{ fontWeight: 700, color: '#dc2626', fontSize: 13 }}>Warning: Permanent Deletion</span>
-            </div>
-            <p style={{ fontSize: 13, color: '#7f1d1d', margin: 0, lineHeight: 1.5 }}>
-              You are about to permanently delete <strong>{selectedTopicIds.size} syllabus record{selectedTopicIds.size === 1 ? '' : 's'}</strong>.
-              This will remove them from the database and cannot be recovered.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button className="secondary" type="button" onClick={() => setPendingBulkDelete(false)}>Cancel</button>
-            <button
-              className="primary"
-              type="button"
-              onClick={async () => {
-                setPendingBulkDelete(false);
-                await removeSelected();
-              }}
-              style={{ background: '#dc2626', border: '1px solid #b91c1c', display: 'inline-flex', alignItems: 'center', gap: 7 }}
-            >
-              <Icons.Trash2 size={15} /> Delete {selectedTopicIds.size} Records
-            </button>
-          </div>
-        </div>
-      </div>
+      <PasswordDeleteModal
+        title={`Delete ${selectedTopicIds.size} Selected Record${selectedTopicIds.size === 1 ? '' : 's'}`}
+        itemDescription={`${selectedTopicIds.size} syllabus record${selectedTopicIds.size === 1 ? '' : 's'} (permanent, cannot be undone)`}
+        user={user}
+        close={() => setPendingBulkDelete(false)}
+        onConfirm={removeSelected}
+      />
     )}
 
     {addOpen && (
